@@ -1,0 +1,26 @@
+
+import random
+
+class Genotype:
+    def __init__(self, c_real, c_imag, x_offset, y_offset, zoom):
+        self.c_real = c_real
+        self.c_imag = c_imag
+        self.x_offset = x_offset
+        self.y_offset = y_offset
+        self.zoom = zoom
+
+def generate_random_genotype():
+    c_real = random.uniform(-1.5, 1.5)
+    c_imag = random.uniform(-1.5, 1.5)
+    x_offset = random.uniform(-1.0, 1.0)
+    y_offset = random.uniform(-1.0, 1.0)
+    zoom = random.uniform(0.5, 3.0)
+    return Genotype(c_real, c_imag, x_offset, y_offset, zoom)
+
+population = []
+for i in range(100):
+    population.append(generate_random_genotype())
+
+print(len(population))
+print(population[0].c_real)
+print(population[0].c_imag)
