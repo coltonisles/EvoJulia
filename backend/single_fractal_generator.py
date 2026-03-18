@@ -6,8 +6,8 @@ LENGTH = 800
 
 #complex(x, y): x: -2 <= x <=2, y: -2 <= y <= 2
 #test value cr = -0.8, ci = 0.17 for good fractal
-c_real = -0.7089246769139015
-c_imag = 1.1302003595409786
+c_real = -0.8
+c_imag = 0.17
 
 x_offset = 0
 y_offset = 0
