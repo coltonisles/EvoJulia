@@ -14,6 +14,6 @@ def load_and_process(image_path):
     return gray_img
 
 #testing only
-res = load_and_process("../IMG_6363.jpeg")
-cv2.imshow("Processed Target", res)
-cv2.waitKey(0)
+#res = load_and_process("../IMG_6363.jpeg")
+#cv2.imshow("Processed Target", res)
+#cv2.waitKey(0)

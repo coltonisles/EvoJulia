@@ -1,1 +1,4 @@
 opencv-python == 4.13.0.92
+fastapi == 0.61.1
+uvicorn == 0.42.0
+python-multipart == 0.0.22
