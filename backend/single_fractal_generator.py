@@ -1,8 +1,9 @@
 import numpy as np
 from PIL import Image
+import config
 
-WIDTH = 800
-LENGTH = 800
+WIDTH = config.WIDTH
+HEIGHT = config.HEIGHT
 
 #complex(x, y): x: -2 <= x <=2, y: -2 <= y <= 2
 #test value cr = -0.8, ci = 0.17 for good fractal
@@ -13,7 +14,7 @@ x_offset = 0
 y_offset = 0
 zoom = 1.0
 
-MAX_ITERATIONS = 255
+MAX_ITERATIONS = config.MAX_ITERATIONS
 
 c = complex(c_real, c_imag)
 x_min = (-1.5/ zoom + x_offset)
@@ -24,9 +25,9 @@ y_max = (1.5 / zoom + y_offset)
 #linspace is used to create a linear space of values starting at start and ending at stop and
 # distributes of the num number. start and stop are the first and last values of the array
 # i.e. (0, 10, 5) creates an array of 5 values start at 0 to 10 (0, 2.5, 5, 7.5, 10)
-#linspace(start, stop, num): start <= stop, num > 0 |||||||||| num = length
+#linspace(start, stop, num): start <= stop, num > 0 |||||||||| num = HEIGHT
 x = np.linspace(x_min, x_max, WIDTH)
-y = np.linspace(y_min, y_max, LENGTH)
+y = np.linspace(y_min, y_max, HEIGHT)
 
 # transforms 1d coordinate vectors into 2d coordinate matrices meshgrid(one or more 1d arrays,
 # copy?,
@@ -41,10 +42,10 @@ z = X + 1j * Y
 #zeros(shape, dtype, order) Shape = defines dimensions of an array,
 # dtype = datatype(opt),
 # order = memory layout c-style(row major) || fortran-style(column major)
-escape_times = np.zeros((LENGTH, WIDTH))
+escape_times = np.zeros((HEIGHT, WIDTH))
 
 #tracks the current pixels that are active (not escaped) init with 1(true) known as a mask
-active_pixels = np.ones((LENGTH, WIDTH), dtype=bool)
+active_pixels = np.ones((HEIGHT, WIDTH), dtype=bool)
 
 for i in range(MAX_ITERATIONS):
     #applies the function to the pixels that are active

@@ -1,5 +1,6 @@
 
 import random
+import config
 
 class Genotype:
     def __init__(self, c_real, c_imag, x_offset, y_offset, zoom):
@@ -18,7 +19,7 @@ def generate_random_genotype():
     return Genotype(c_real, c_imag, x_offset, y_offset, zoom)
 
 population = []
-for i in range(100):
+for i in range(config.POPULATION_SIZE):
     population.append(generate_random_genotype())
 
 print(len(population))
