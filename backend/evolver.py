@@ -8,36 +8,34 @@ def select_parents(population, scores, selection_size):
     scored_genotypes = list(zip(population, scores))
     sorted_scored_genotypes = sorted(scored_genotypes, key=lambda pair: pair[1])
     top_scored_genotypes = sorted_scored_genotypes[:selection_size]
-    selected_parents = [pair[0] for pair in top_scored_genotypes]
-
-    return selected_parents
+    return [pair[0] for pair in top_scored_genotypes]
 
 def crossover(parent1, parent2):
-    c_real_new = random.choice([parent1.c_real, parent2.c_real])
-    c_imag_new = random.choice([parent1.c_imag, parent2.c_imag])
-    x_offset_new = random.choice([parent1.x_offset, parent2.x_offset])
-    y_offset_new = random.choice([parent1.y_offset, parent2.y_offset])
-    zoom_new = random.choice([parent1.zoom, parent2.zoom])
-    return Genotype(c_real_new, c_imag_new, x_offset_new, y_offset_new, zoom_new)
+    new_layers = []
+    for i in range(config.NUM_LAYERS):
+        layer = {
+            'c_real': random.choice([parent1.layers[i]['c_real'], parent2.layers[i]['c_real']]),
+            'c_imag': random.choice([parent1.layers[i]['c_imag'], parent2.layers[i]['c_imag']]),
+            'x_offset': random.choice([parent1.layers[i]['x_offset'], parent2.layers[i]['x_offset']]),
+            'y_offset': random.choice([parent1.layers[i]['y_offset'], parent2.layers[i]['y_offset']]),
+            'zoom': random.choice([parent1.layers[i]['zoom'], parent2.layers[i]['zoom']])
+        }
+        new_layers.append(layer)
+    return Genotype(new_layers)
 
-def mutate(genotype, mutate_rate=0.1, mutate_value=0.1):
-    c_real_chance = random.random()
-    c_imag_chance = random.random()
-    x_offset_chance = random.random()
-    y_offset_chance = random.random()
-    zoom_chance = random.random()
-
-    if c_real_chance < mutate_rate:
-        new_val = genotype.c_real + random.uniform(-mutate_value, mutate_value)
-        genotype.c_real = max(-1.0, min(1.0, new_val))
-    if c_imag_chance < mutate_rate:
-        new_val = genotype.c_imag + random.uniform(-mutate_value, mutate_value)
-        genotype.c_imag = max(-1.0, min(1.0, new_val))
-    if x_offset_chance < mutate_rate:
-        genotype.x_offset += random.uniform(-mutate_value, mutate_value)
-    if y_offset_chance < mutate_rate:
-        genotype.y_offset += random.uniform(-mutate_value, mutate_value)
-    if zoom_chance < mutate_rate:
-        new_zoom = genotype.zoom + random.uniform(-mutate_value, mutate_value)
-        genotype.zoom = max(0.1, new_zoom)
+def mutate(genotype, mutate_rate, mutate_range):
+    for i in range(config.NUM_LAYERS):
+        if random.random() < mutate_rate:
+            new_val = genotype.layers[i]['c_real'] + random.uniform(-mutate_range, mutate_range)
+            genotype.layers[i]['c_real'] = max(-1.0, min(1.0, new_val))
+        if random.random() < mutate_rate:
+            new_val = genotype.layers[i]['c_imag'] + random.uniform(-mutate_range, mutate_range)
+            genotype.layers[i]['c_imag'] = max(-1.0, min(1.0, new_val))
+        if random.random() < mutate_rate:
+            genotype.layers[i]['x_offset'] += random.uniform(-mutate_range, mutate_range)
+        if random.random() < mutate_rate:
+            genotype.layers[i]['y_offset'] += random.uniform(-mutate_range, mutate_range)
+        if random.random() < mutate_rate:
+            new_zoom = genotype.layers[i]['zoom'] + random.uniform(-mutate_range, mutate_range)
+            genotype.layers[i]['zoom'] = max(0.1, new_zoom)
     return genotype

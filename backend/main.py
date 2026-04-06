@@ -1,4 +1,4 @@
-import numpy as np
+
 import cv2
 import psutil
 import os
@@ -16,17 +16,17 @@ def run_evo():
     p = psutil.Process(os.getpid())
     p.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
 
-    image_path = "helix_nebula.jpg"
+    image_path = "maple_leaf.jpg"
 
     image_array, weights = image_preprocessor.load_and_process(image_path)
 
     active_population = population_init.population
 
-    with ProcessPoolExecutor(initializer=evaluator.init_worker, initargs=(image_array, weights)) as exec:
+    with ProcessPoolExecutor(initializer=evaluator.init_worker, initargs=(image_array, weights)) as executor:
 
         for generation in tqdm(range(config.GENERATION_SIZE), desc="Overall Progress", position=0):
 
-            scores = list(exec.map(evaluator.evaluate, active_population, chunksize=10))
+            scores = list(executor.map(evaluator.evaluate, active_population, chunksize=10))
 
             best_score = min(scores)
             best_index = scores.index(best_score)

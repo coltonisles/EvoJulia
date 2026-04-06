@@ -3,20 +3,21 @@ import random
 import config
 
 class Genotype:
-    def __init__(self, c_real, c_imag, x_offset, y_offset, zoom):
-        self.c_real = c_real
-        self.c_imag = c_imag
-        self.x_offset = x_offset
-        self.y_offset = y_offset
-        self.zoom = zoom
+    def __init__(self, layers):
+       self.layers = layers
 
 def generate_random_genotype():
-    c_real = random.uniform(-1.0, 1.0)
-    c_imag = random.uniform(-1.0, 1.0)
-    x_offset = random.uniform(-0.5, 0.5)
-    y_offset = random.uniform(-0.5, 0.5)
-    zoom = random.uniform(0.5, 2.5)
-    return Genotype(c_real, c_imag, x_offset, y_offset, zoom)
+    layers = []
+    for _ in range(config.NUM_LAYERS):
+        layer = {
+            'c_real': random.uniform(-1.0, 1.0),
+            'c_imag': random.uniform(-1.0, 1.0),
+            'x_offset': random.uniform(-0.5, 0.5),
+            'y_offset': random.uniform(-0.5, 0.5),
+            'zoom': random.uniform(0.5, 2.5)
+        }
+        layers.append(layer)
+    return Genotype(layers)
 
 population = []
 for i in range(config.POPULATION_SIZE):
