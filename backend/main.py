@@ -1,5 +1,7 @@
 import numpy as np
 import cv2
+import psutil
+import os
 import config
 import image_preprocessor
 import population_init
@@ -11,6 +13,9 @@ from concurrent.futures import ProcessPoolExecutor
 
 
 def run_evo():
+    p = psutil.Process(os.getpid())
+    p.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
+
     image_path = "helix_nebula.jpg"
 
     image_array, weights = image_preprocessor.load_and_process(image_path)
@@ -21,7 +26,7 @@ def run_evo():
 
         for generation in tqdm(range(config.GENERATION_SIZE), desc="Overall Progress", position=0):
 
-            scores = list(exec.map(evaluator.evaluate, active_population))
+            scores = list(exec.map(evaluator.evaluate, active_population, chunksize=10))
 
             best_score = min(scores)
             best_index = scores.index(best_score)
