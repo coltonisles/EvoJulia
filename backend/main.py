@@ -1,5 +1,6 @@
 
 import cv2
+import numpy as np
 import psutil
 import os
 import config
@@ -42,7 +43,7 @@ def run_evo():
                 parent2 = random.choice(parents)
 
                 child = evolver.crossover(parent1, parent2)
-                child = evolver.mutate(child, mutate_rate=0.1, mutate_value=0.1)
+                child = evolver.mutate(child, config.MUTATION_RATE, config.MUTATION_RANGE)
                 new_population.append(child)
 
             active_population = new_population
@@ -50,20 +51,26 @@ def run_evo():
     print("Evolution Complete, Generating Final Image...")
 
     final_fractal = evaluator.generate_fractal_array(best_genotype)
-    file_name = f"final_fractal_{best_score:.0f}.png"
-    cv2.imwrite(file_name, final_fractal)
+    if image_array.dtype != np.uint8:
+        image_array_uint8 = image_array.astype(np.uint8)
+    else:
+        image_array_uint8 = image_array
+
+    combined_image = np.hstack((image_array_uint8, final_fractal))
+
+    basePath = image_path.split('.')[0]
+    file_name = f"{basePath}_{best_score:.0f}.png"
+    cv2.imwrite(file_name, combined_image)
     print(f"Final Fractal saved as {file_name}")
 
     print("\n---Final Fractal Genotype---")
-    print(f"Real: {best_genotype.c_real:.4f}")
-    print(f"Imaginary: {best_genotype.c_imag:.4f}")
-    print(f"X Offset: {best_genotype.x_offset:.4f}")
-    print(f"Y Offset: {best_genotype.y_offset:.4f}")
-    print(f"Zoom: {best_genotype.zoom:.4f}")
+    for i, layer in enumerate(best_genotype.layers):
+        print(f"Layer {i + 1}:")
+        print(f"  Real: {layer['c_real']: .4f}, Imag: {layer['c_imag']: .4f}")
+        print(f"  X/Y: {layer['x_offset']: .4f} / {layer['y_offset']: .4f}, Zoom: {layer['zoom']: .4f}")
     print("--------------------------------\n")
 
-    cv2.imshow("Original Image", image_array)
-    cv2.imshow("Final Fractal", final_fractal)
+    cv2.imshow("Original VS Fractal", combined_image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
