@@ -5,6 +5,13 @@ WIDTH = config.WIDTH
 HEIGHT = config.HEIGHT
 MAX_ITERATIONS = config.MAX_ITERATIONS
 
+_worker_target = None
+_worker_weights = None
+
+def init_worker(target, weights):
+    global _worker_target, _worker_weights
+    _worker_target = target
+    _worker_weights = weights
 
 def generate_fractal_array(genotype):
     c_real = genotype.c_real
@@ -77,8 +84,8 @@ def calculate_mse(image_a, image_b, weights):
 
     return weighted_mse
 
-def evaluate(genotype, target_image_array, weights):
+def evaluate(genotype):
     fractal_arr = generate_fractal_array(genotype)
-    mse = calculate_mse(fractal_arr, target_image_array, weights = weights)
+    mse = calculate_mse(fractal_arr, _worker_target, weights = _worker_weights)
     return mse
 

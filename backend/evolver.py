@@ -28,14 +28,16 @@ def mutate(genotype, mutate_rate=0.1, mutate_value=0.1):
     zoom_chance = random.random()
 
     if c_real_chance < mutate_rate:
-        genotype.c_real += random.uniform(-mutate_value, mutate_value)
+        new_val = genotype.c_real + random.uniform(-mutate_value, mutate_value)
+        genotype.c_real = max(-1.0, min(1.0, new_val))
     if c_imag_chance < mutate_rate:
-        genotype.c_imag += random.uniform(-mutate_value, mutate_value)
+        new_val = genotype.c_imag + random.uniform(-mutate_value, mutate_value)
+        genotype.c_imag = max(-1.0, min(1.0, new_val))
     if x_offset_chance < mutate_rate:
         genotype.x_offset += random.uniform(-mutate_value, mutate_value)
     if y_offset_chance < mutate_rate:
         genotype.y_offset += random.uniform(-mutate_value, mutate_value)
     if zoom_chance < mutate_rate:
-        genotype.zoom += random.uniform(-mutate_value, mutate_value)
-
+        new_zoom = genotype.zoom + random.uniform(-mutate_value, mutate_value)
+        genotype.zoom = max(0.1, new_zoom)
     return genotype
