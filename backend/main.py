@@ -11,13 +11,14 @@ import evolver
 from tqdm import tqdm
 import random
 from concurrent.futures import ProcessPoolExecutor
+from skimage.exposure import match_histograms
 
 
 def run_evo():
     p = psutil.Process(os.getpid())
     p.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
 
-    image_path = "maple_leaf.jpg"
+    image_path = "Images/helix_nebula.jpg"
 
     image_array, weights = image_preprocessor.load_and_process(image_path)
 
@@ -51,12 +52,17 @@ def run_evo():
     print("Evolution Complete, Generating Final Image...")
 
     final_fractal = evaluator.generate_fractal_array(best_genotype)
-    if image_array.dtype != np.uint8:
-        image_array_uint8 = image_array.astype(np.uint8)
-    else:
-        image_array_uint8 = image_array
 
-    combined_image = np.hstack((image_array_uint8, final_fractal))
+    rgb_origin = cv2.imread(image_path)
+    rgb_origin = cv2.resize(rgb_origin, (config.WIDTH, config.HEIGHT))
+
+    rgb_final = cv2.cvtColor(final_fractal, cv2.COLOR_GRAY2RGB)
+
+    colored_fractal = match_histograms(rgb_final, rgb_origin, channel_axis=-1)
+
+    colored_fractal = np.uint8(colored_fractal)
+
+    combined_image = np.hstack((rgb_origin, colored_fractal))
 
     basePath = image_path.split('.')[0]
     file_name = f"{basePath}_{best_score:.0f}.png"

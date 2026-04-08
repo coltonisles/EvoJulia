@@ -4,7 +4,7 @@ WIDTH = 400
 HEIGHT = 400
 
 #Fractal Parameters
-MAX_ITERATIONS = 255
+MAX_ITERATIONS = 100
 
 #GA Parameters
 POPULATION_SIZE = 100
@@ -13,5 +13,5 @@ MUTATION_RATE = 0.2
 MUTATION_RANGE = 0.3
 
 #Number of generations to run
-GENERATION_SIZE = 50
+GENERATION_SIZE = 80
 
