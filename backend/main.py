@@ -1,6 +1,7 @@
 
 import cv2
 import numpy as np
+import cupy as cp
 import psutil
 import os
 import config
@@ -10,7 +11,6 @@ import evaluator
 import evolver
 from tqdm import tqdm
 import random
-from concurrent.futures import ProcessPoolExecutor
 from skimage.exposure import match_histograms
 
 
@@ -18,40 +18,42 @@ def run_evo():
     p = psutil.Process(os.getpid())
     p.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
 
-    image_path = "Images/helix_nebula.jpg"
+    image_path = config.IMAGE_PATH
 
     image_array, weights = image_preprocessor.load_and_process(image_path)
 
     active_population = population_init.population
 
-    with ProcessPoolExecutor(initializer=evaluator.init_worker, initargs=(image_array, weights)) as executor:
+    evaluator.init_gpu(image_array, weights)
 
-        for generation in tqdm(range(config.GENERATION_SIZE), desc="Overall Progress", position=0):
+    for generation in tqdm(range(config.GENERATION_SIZE), desc="Overall Progress", position=0):
 
-            scores = list(executor.map(evaluator.evaluate, active_population, chunksize=10))
+        scores = evaluator.batch_evaluate(active_population, batch_size=10)
 
-            best_score = min(scores)
-            best_index = scores.index(best_score)
-            best_genotype = active_population[best_index]
+        best_score = min(scores)
+        best_index = scores.index(best_score)
+        best_genotype = active_population[best_index]
 
-            tqdm.write(f"Generation {generation} Best MSE: {best_score:.2f}")
+        tqdm.write(f"Generation {generation} Best MSE: {best_score:.2f}")
 
-            parents = evolver.select_parents(active_population,scores, 20)
-            new_population = [best_genotype]
+        parents = evolver.select_parents(active_population,scores, 20)
+        new_population = [best_genotype]
 
-            while len(new_population) < config.POPULATION_SIZE:
-                parent1 = random.choice(parents)
-                parent2 = random.choice(parents)
+        while len(new_population) < config.POPULATION_SIZE:
+            parent1 = random.choice(parents)
+            parent2 = random.choice(parents)
 
-                child = evolver.crossover(parent1, parent2)
-                child = evolver.mutate(child, config.MUTATION_RATE, config.MUTATION_RANGE)
-                new_population.append(child)
+            child = evolver.crossover(parent1, parent2)
+            child = evolver.mutate(child, config.MUTATION_RATE, config.MUTATION_RANGE)
+            new_population.append(child)
 
-            active_population = new_population
+        active_population = new_population
 
     print("Evolution Complete, Generating Final Image...")
 
     final_fractal = evaluator.generate_fractal_array(best_genotype)
+
+    final_fractal = cp.asnumpy(final_fractal).astype(np.uint8)
 
     rgb_origin = cv2.imread(image_path)
     rgb_origin = cv2.resize(rgb_origin, (config.WIDTH, config.HEIGHT))
@@ -64,10 +66,12 @@ def run_evo():
 
     combined_image = np.hstack((rgb_origin, colored_fractal))
 
-    basePath = image_path.split('.')[0]
-    file_name = f"{basePath}_{best_score:.0f}.png"
-    cv2.imwrite(file_name, combined_image)
-    print(f"Final Fractal saved as {file_name}")
+    base_path = os.path.basename(image_path)
+    base_name = base_path.split('.')[0]
+    file_name = f"{base_name}_{best_score:.0f}.png"
+    total_path = os.path.join("Output", file_name)
+    cv2.imwrite(total_path, combined_image)
+    print(f"Final Fractal saved as {total_path}")
 
     print("\n---Final Fractal Genotype---")
     for i, layer in enumerate(best_genotype.layers):
