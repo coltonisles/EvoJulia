@@ -1,6 +1,6 @@
 
 #Dimensions for images
-IMAGE_PATH = "images/helix_nebula.jpg"
+IMAGE_PATH = "images/IS-blackhole.jpg"
 GEN_WIDTH = 400
 GEN_HEIGHT = 400
 FINAL_WIDTH = 1000

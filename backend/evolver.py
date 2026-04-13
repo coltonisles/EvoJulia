@@ -34,7 +34,7 @@ def crossover(parent1, parent2):
 #adds a random amount of mutation(mutate range) to each parameter of the genotype based on the mutate rate
 def mutate(genotype, mutate_rate, mutate_range):
 
-    #ruels for each parameter of the genotype to mutate (trait name, min limit, max limit)
+    #rules for each parameter of the genotype to mutate (trait name, min limit, max limit)
     mutate_rules = [
         ('c_real', -1.0, 1.0),
         ('c_imag', -1.0, 1.0),
@@ -59,7 +59,6 @@ def mutate(genotype, mutate_rate, mutate_range):
                     new_val = min(max_limit, new_val)
 
                 genotype.layers[i][trait] = new_val
-
 
 
         '''

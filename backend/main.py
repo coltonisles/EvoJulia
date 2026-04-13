@@ -31,8 +31,11 @@ def run_evo():
     #tqdm() is a progress bar that displays the progress of the loop
     for generation in tqdm(range(config.GENERATION_SIZE), desc="Overall Progress", position=0):
 
+        #simulated annealing algorithm: reduces mutation rate over time
+        #allows for an initial high mutation rate and gradually reduces it to provide more precision over time
         precision_factor = max(0.01, 1.0 - (generation / config.GENERATION_SIZE))
 
+        #multiplies the mutation rate and range by the precision factor to reduce the mutation rate over time
         current_mutation_rate = config.MUTATION_RATE * precision_factor
         current_mutation_range = config.MUTATION_RANGE * precision_factor
 
