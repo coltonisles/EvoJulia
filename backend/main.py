@@ -50,7 +50,7 @@ def run_evo():
         tqdm.write(f"Generation {generation} Best MSE: {best_score:.2f} || Mutation Rate: {current_mutation_rate:.2%}")
 
         #selects the top 20 parents for the next generation
-        parents = evolver.select_parents(active_population,scores, 20)
+        parents = evolver.select_parents(active_population,scores, config.SELECTION_SIZE)
         #elitism: the best genotype from the previous generation is always preserved
         #ensures the score will never decrease
         new_population = [best_genotype]
