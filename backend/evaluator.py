@@ -2,8 +2,6 @@ import numpy as np
 import cupy as cp
 import config
 
-WIDTH = config.WIDTH
-HEIGHT = config.HEIGHT
 MAX_ITERATIONS = config.MAX_ITERATIONS
 
 _gpu_target = None
@@ -19,7 +17,7 @@ def init_gpu(target, weights):
 def generate_fractal_array(genotype):
 
     #initializes an array of 0's'
-    layered_image = cp.zeros((HEIGHT, WIDTH), dtype=float)
+    layered_image = cp.zeros((config.FINAL_HEIGHT, config.FINAL_WIDTH), dtype=float)
 
     for layer in genotype.layers:
         c = complex(layer['c_real'], layer['c_imag'])
@@ -32,8 +30,8 @@ def generate_fractal_array(genotype):
         # distributes of the num number. start and stop are the first and last values of the array
         # i.e. (0, 10, 5) creates an array of 5 values start at 0 to 10 (0, 2.5, 5, 7.5, 10)
         #linspace(start, stop, num): start <= stop, num > 0); num = length of the array
-        x = cp.linspace(x_min, x_max, WIDTH)
-        y = cp.linspace(y_min, y_max, HEIGHT)
+        x = cp.linspace(x_min, x_max, config.FINAL_WIDTH)
+        y = cp.linspace(y_min, y_max, config.FINAL_HEIGHT)
 
         # transforms 1d coordinate vectors into 2d coordinate matrices meshgrid(one or more 1d arrays,
         # copy?,
@@ -48,10 +46,10 @@ def generate_fractal_array(genotype):
         #zeros(shape, dtype, order) Shape = defines dimensions of an array,
         # dtype = datatype(opt),
         # order = memory layout c-style(row major) || fortran-style(column major)
-        escape_times = cp.zeros((HEIGHT, WIDTH))
+        escape_times = cp.zeros((config.FINAL_HEIGHT, config.FINAL_WIDTH))
 
         #tracks the current pixels that are active (not escaped) init with 1(true) known as a mask
-        active_pixels = cp.ones((HEIGHT, WIDTH), dtype=bool)
+        active_pixels = cp.ones((config.FINAL_HEIGHT, config.FINAL_WIDTH), dtype=bool)
 
         for i in range(MAX_ITERATIONS):
             #applies the function to the pixels that are active
@@ -98,7 +96,7 @@ def evaluate(genotype):
 
 #evaluates a batch of genotypes and returns a list of mean squared errors
 #uses 4-dimensional matrix math to evaluate multiple genotypes at once
-def batch_evaluate(population, batch_size=10):
+def batch_evaluate(population, batch_size):
     total_scores = []
 
     for i in range (0, len(population), batch_size):
@@ -136,15 +134,15 @@ def batch_evaluate(population, batch_size=10):
         #creates a grid of complex numbers and reshapes it to be 4-dimensional
         #linspace(start, stop, num): start <= stop, num > 0
         #reshape(w,x,y,z): w = width, x = height, y = depth, z = channels
-        nx = cp.linspace(0, 1, WIDTH, dtype=cp.float32).reshape(1, 1, 1, WIDTH)
-        ny = cp.linspace(0, 1, HEIGHT, dtype=cp.float32).reshape(1, 1, HEIGHT, 1)
+        nx = cp.linspace(0, 1, config.GEN_WIDTH, dtype=cp.float32).reshape(1, 1, 1, config.GEN_WIDTH)
+        ny = cp.linspace(0, 1, config.GEN_HEIGHT, dtype=cp.float32).reshape(1, 1, config.GEN_HEIGHT, 1)
 
         #combines the grid of complex numbers with the genotype parameters to create a grid of complex numbers
         X = x_min_cp + nx * (x_max_cp - x_min_cp)
         Y = y_min_cp + ny * (y_max_cp - y_min_cp)
 
-        escape_times = cp.zeros((current_size, config.NUM_LAYERS, HEIGHT, WIDTH), dtype=cp.float32)
-        active_pixels = cp.ones((current_size, config.NUM_LAYERS, HEIGHT, WIDTH), dtype=bool)
+        escape_times = cp.zeros((current_size, config.NUM_LAYERS, config.GEN_HEIGHT, config.GEN_WIDTH), dtype=cp.float32)
+        active_pixels = cp.ones((current_size, config.NUM_LAYERS, config.GEN_HEIGHT, config.GEN_WIDTH), dtype=bool)
 
         for _ in range(MAX_ITERATIONS):
             x2 = X * X

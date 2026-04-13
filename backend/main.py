@@ -15,6 +15,7 @@ from skimage.exposure import match_histograms
 
 
 def run_evo():
+    #potentially remove this line later
     p = psutil.Process(os.getpid())
     p.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
 
@@ -26,25 +27,38 @@ def run_evo():
 
     evaluator.init_gpu(image_array, weights)
 
+    #main genetic algorithm loop
+    #tqdm() is a progress bar that displays the progress of the loop
     for generation in tqdm(range(config.GENERATION_SIZE), desc="Overall Progress", position=0):
 
-        scores = evaluator.batch_evaluate(active_population, batch_size=10)
+        precision_factor = max(0.01, 1.0 - (generation / config.GENERATION_SIZE))
 
+        current_mutation_rate = config.MUTATION_RATE * precision_factor
+        current_mutation_range = config.MUTATION_RANGE * precision_factor
+
+        #evaluates the current population batch
+        scores = evaluator.batch_evaluate(active_population, config.BATCH_SIZE)
+
+        #find best scores (lowest value) and corresponding genotypes
         best_score = min(scores)
         best_index = scores.index(best_score)
         best_genotype = active_population[best_index]
+        #tqdm.write(): prints a message to the console without interrupting the progress bar
+        tqdm.write(f"Generation {generation} Best MSE: {best_score:.2f} || Mutation Rate: {current_mutation_rate:.2%}")
 
-        tqdm.write(f"Generation {generation} Best MSE: {best_score:.2f}")
-
+        #selects the top 20 parents for the next generation
         parents = evolver.select_parents(active_population,scores, 20)
+        #elitism: the best genotype from the previous generation is always preserved
+        #ensures the score will never decrease
         new_population = [best_genotype]
 
+        #breeding loop until the population is full
         while len(new_population) < config.POPULATION_SIZE:
             parent1 = random.choice(parents)
             parent2 = random.choice(parents)
 
             child = evolver.crossover(parent1, parent2)
-            child = evolver.mutate(child, config.MUTATION_RATE, config.MUTATION_RANGE)
+            child = evolver.mutate(child, current_mutation_rate, current_mutation_range)
             new_population.append(child)
 
         active_population = new_population
@@ -56,7 +70,7 @@ def run_evo():
     final_fractal = cp.asnumpy(final_fractal).astype(np.uint8)
 
     rgb_origin = cv2.imread(image_path)
-    rgb_origin = cv2.resize(rgb_origin, (config.WIDTH, config.HEIGHT))
+    rgb_origin = cv2.resize(rgb_origin, (config.FINAL_WIDTH, config.FINAL_HEIGHT))
 
     rgb_final = cv2.cvtColor(final_fractal, cv2.COLOR_GRAY2RGB)
 

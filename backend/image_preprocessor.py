@@ -11,7 +11,7 @@ def load_and_process(image_path):
     #converts a colour image into a grayscale image
     gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     #resizes the image to the target dimensions
-    gray_img = cv2.resize(gray_img, (config.WIDTH, config.HEIGHT))
+    gray_img = cv2.resize(gray_img, (config.GEN_WIDTH, config.GEN_HEIGHT))
 
     #returns an image with edges being white and else everything else black
     edges = cv2.Canny(gray_img, 100, 200)
