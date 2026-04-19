@@ -1,6 +1,6 @@
 
 #Dimensions for images
-IMAGE_PATH = "images/IS-blackhole.jpg"
+IMAGE_PATH = "images/blackhole2.jpg"
 GEN_WIDTH = 400
 GEN_HEIGHT = 400
 FINAL_WIDTH = 1000
@@ -18,6 +18,8 @@ MUTATION_RANGE = 0.50
 SELECTION_SIZE = 40
 
 #Number of generations to run
-GENERATION_SIZE = 400
+GENERATION_SIZE = 500
 BATCH_SIZE = 25
 
+#GIF generation parameters
+SNAPSHOT_RATE = 5

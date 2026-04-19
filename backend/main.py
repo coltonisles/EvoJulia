@@ -12,6 +12,7 @@ import evolver
 from tqdm import tqdm
 import random
 from skimage.exposure import match_histograms
+import imageio
 
 
 def run_evo():
@@ -26,6 +27,13 @@ def run_evo():
     active_population = population_init.population
 
     evaluator.init_gpu(image_array, weights)
+
+    rgb_origin_sm = cv2.imread(image_path)
+    rgb_origin_sm = cv2.resize(rgb_origin_sm, (config.FINAL_WIDTH, config.FINAL_HEIGHT))
+
+    gif_frames = []
+
+    snapshot_rate = config.SNAPSHOT_RATE
 
     #main genetic algorithm loop
     #tqdm() is a progress bar that displays the progress of the loop
@@ -64,6 +72,18 @@ def run_evo():
             child = evolver.mutate(child, current_mutation_rate, current_mutation_range)
             new_population.append(child)
 
+        if generation % snapshot_rate == 0:
+            frame_fractal = evaluator.generate_fractal_array(best_genotype)
+            frame_fractal = cp.asnumpy(frame_fractal).astype(np.uint8)
+
+            rgb_frame = cv2.cvtColor(frame_fractal, cv2.COLOR_GRAY2RGB)
+            colored_frame = match_histograms(rgb_frame, rgb_origin_sm, channel_axis=-1)
+            colored_frame = np.uint8(colored_frame)
+
+            fixed_colored_frame = cv2.cvtColor(colored_frame, cv2.COLOR_BGR2RGB)
+
+            gif_frames.append(fixed_colored_frame)
+
         active_population = new_population
 
     print("Evolution Complete, Generating Final Image...")
@@ -75,6 +95,7 @@ def run_evo():
     rgb_origin = cv2.imread(image_path)
     rgb_origin = cv2.resize(rgb_origin, (config.FINAL_WIDTH, config.FINAL_HEIGHT))
 
+
     rgb_final = cv2.cvtColor(final_fractal, cv2.COLOR_GRAY2RGB)
 
     colored_fractal = match_histograms(rgb_final, rgb_origin, channel_axis=-1)
@@ -83,10 +104,29 @@ def run_evo():
 
     combined_image = np.hstack((rgb_origin, colored_fractal))
 
+
+
     base_path = os.path.basename(image_path)
     base_name = base_path.split('.')[0]
+    folder_name = f"{base_name}_{best_score:.0f}"
+
+    save_directory = os.path.join("Output", folder_name)
+
+    os.makedirs(save_directory, exist_ok=True)
+    print(f"\nCreated new save folder: {save_directory}")
+
+
+
     file_name = f"{base_name}_{best_score:.0f}.png"
-    total_path = os.path.join("Output", file_name)
+    total_path = os.path.join(save_directory, file_name)
+
+    print("Creating GIF...")
+
+    gif_path = os.path.join(save_directory, f"{base_name}_timelapse.gif")
+
+    imageio.mimsave(gif_path, gif_frames, fps=10)
+    print(f"Timelapse saved as {gif_path}")
+
     cv2.imwrite(total_path, combined_image)
     print(f"Final Fractal saved as {total_path}")
 
