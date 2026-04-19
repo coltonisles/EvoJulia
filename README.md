@@ -27,7 +27,7 @@ Fractals possess infinite detail, but rendering high resolutions during the evol
 ### 4. Histogram Color Matching
 The underlying Julia Sets generate grayscale maps based on escape-time algorithms. To map the target image's color palette onto the mathematical structure, the final output is converted to a 3-channel RGB canvas. Using `scikit-image`, the algorithm extracts the exact color histogram of the original image and applies it to the fractal's brightness map.
 
-### 5. 🎞️ Automated Timelapse Generation
+### 5. Automated Timelapse Generation
 Because the learning process is as important as the final output, the engine automatically samples the fittest genotype at regular intervals during the training loop. Using `imageio`, it stitches these NumPy arrays into a smooth timelapse GIF, physically demonstrating the algorithm "learning" the target shape. Outputs are automatically organized into timestamped directories.
 
 ## The Genotype Structure
