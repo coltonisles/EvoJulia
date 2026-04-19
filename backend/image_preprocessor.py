@@ -1,4 +1,5 @@
 import cv2
+from config import MosaicConfig as Mosaic
 
 TARGET_WIDTH = 200
 TARGET_HEIGHT = 200
@@ -40,7 +41,7 @@ def load_and_process(image_path):
 import numpy as np
 from PIL import Image
 
-def prepare_GreyImage_float32_and_unit8(image_path, grid_n_by_n=GRID_N_BY_N, tile_size=TILE_SIZE):
+def prepare_GreyImage_float32_and_unit8(image_path, grid_n_by_n=Mosaic.grid_n, tile_size=Mosaic.tile_size):
     
     img = Image.open(image_path)
     if img is None:
@@ -48,13 +49,13 @@ def prepare_GreyImage_float32_and_unit8(image_path, grid_n_by_n=GRID_N_BY_N, til
     
     side = grid_n_by_n * tile_size
     
-    # GREYSCALE for Canny Edge Detection (uint8), and for tile merging and fitnessing (float32)
+    # GREYSCALE for Canny Edge Detection (uint8), and for tile merging and fitnessing (float32) -- https://www.geeksforgeeks.org/python/python-pil-image-convert-method/
     img_grey = img.convert("L").resize((side, side))
     # Image.LANCZOS might help add sharpness if edges are weak??
-    img_grey = img.convert("L").resize((side, side), Image.LANCZOS)
+    #img_grey = img.convert("L").resize((side, side), Image.LANCZOS)
     
     img_grey_uint8 = np.array(img_grey, dtype=np.uint8)
-    img_grey_float32 = img_grey_uint8.astype(np.float32) / 255
+    img_grey_float32 = img_grey_uint8.astype(np.float32) / 255.0    # Normalization 0-1
     #img_grey_float32 = img_grey_uint8.astype(np.float32) / 255.0 * 9.0 + 1.0
     
     return img_grey_float32, img_grey_uint8
