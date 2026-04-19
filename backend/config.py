@@ -2,36 +2,33 @@
 
 
 # CONSTANTS AND VARIABLES TO TWEAK
-CONFIG = {
-    "image_path": "target.png" or "target.jpg" or "target.jpeg",
-    "output_path": "mosaic_output.png",
+#CONFIG = {
+#    "image_path": "target.png" or "target.jpg" or "target.jpeg",
+#    "output_path": "mosaic_output.png",
     
-    "grid_n": 12,
-    "tile_size": 32,
+#    "grid_n": 12,
+#    "tile_size": 32,
     
-    "min_crop_scale": 0.03,
-    "max_crop_scale": 1.0,
+#    "min_crop_scale": 0.03,
+#    "max_crop_scale": 1.0,
     
-    # SAMPLE FRACTALS
-    "sample_fractal_count": 10,     # NUmber of fractals to generate
-    "sample_fractal_resolution": 512,   # resolution (px * px) of each sample fractal
-    "max_iterations": 80,               # GNERATIONS OF GA for SAMPLE fractals
+#    # SAMPLE FRACTALS
+#    "sample_fractal_count": 10,     # NUmber of fractals to generate
+#    "sample_fractal_resolution": 512,   # resolution (px * px) of each sample fractal
+#    "max_iterations": 80,               # GNERATIONS OF GA for SAMPLE fractals
     
-    # ================================================= #
-    ## == GA PARAMS == ##
-    "population_size": 60,
-    NUM_GENERATIONS: 80,
-    ELITISM_RATE_FLOAT: 0.1,
-    MUTATION_RATE_FLOAT: 0.3,
-    MUTATION_INTENSITY_FLOAT: 0.08,     # How much a mutation can change a parameter
+#    # ================================================= #
+#    ## == GA PARAMS == ##
+#    "population_size": 60,
+#    NUM_GENERATIONS: 80,
+#    ELITISM_RATE_FLOAT: 0.1,
+#    MUTATION_RATE_FLOAT: 0.3,
+#    MUTATION_INTENSITY_FLOAT: 0.08,     # How much a mutation can change a parameter
     
-    TOURNAMENT_SIZE: 5,
-    CROSSOVER_RATE_FLOAT: 0.2,          # Possibility of crossover between 2 parents (else a clone)
+#    TOURNAMENT_SIZE: 5,
+#    CROSSOVER_RATE_FLOAT: 0.2,          # Possibility of crossover between 2 parents (else a clone)
     
-    
-    
-    
-}
+#}
 
     
 from dataclasses import dataclass

@@ -1,6 +1,14 @@
-CANNY 
-
+CANNY and OpenCV
 https://www.geeksforgeeks.org/computer-vision/what-is-edge-detection-in-image-processing/
-
 https://wttech.blog/blog/2022/edge-detection-and-processing-using-canny-edge-detector-and-hough-transform/
+https://docs.opencv.org/4.x/dd/d1a/group__imgproc__feature.html#ga04723e007ed888ddf11d9ba04e2232de
+https://www.kaggle.com/code/sitinuradilla/psd-praktikum-image-analysis
+https://www.geeksforgeeks.org/machine-learning/implement-canny-edge-detector-in-python-using-opencv/
 
+
+ARGS and CLI
+https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser.parse_args
+https://docs.python.org/3/library/argparse.html
+
+MULTIPROCESSING
+https://docs.python.org/3/library/multiprocessing.html
