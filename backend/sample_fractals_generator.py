@@ -32,22 +32,40 @@ RESOLUTION = SampleFractals.sample_resolution
 #] 
 # use SampleFractals.JULIA_SETS instead
 
-images = []
-means  = []
+
 
 def generate_multiple_julias():
+    images = []
+    means  = []
+    
     for i, (c_real, c_imag, x_offset, y_offset, zoom) in enumerate(SampleFractals.JULIA_SETS):
         image = generate_julia(c_real, c_imag, x_offset, y_offset, zoom)
         images.append(image)                    # float32[]
         means.append(float(image.mean()))       # Each pixel is a 'greyness' / brightness value, so average = mean brightness
         
-        print(f"{i}: mean-brightness={image.mean():.3f}")
         
         # TO SAVE THESE PRE-BUILT FRACTALS:
         img_uint8 = (image * 255).clip(0, 255).astype(np.uint8)
         Image.fromarray(img_uint8, mode="L").save(f"fractal-{i}-{image.mean():.3f}.png")
     
+    # Pair each sample image with its index and brightness
+    image_data = []
+    for i in range(len(images)):
+        image_data.append([i, images[i], means[i]])
+        
+    def get_brightness(image_data_param):
+        return image_data_param[2]  # return the image's mean (brightness)
+    
+    image_data = sorted(image_data, key=get_brightness)
+    
+    sorted_images = []
+    
+    for x in image_data:
+        sorted_images.append(x[1])  # [1] == the image
+    
     print("exiting generate_multiple_julias()")
+    #return images, np.array(means)
+    return sorted_images
     
 # FOR TESTING - UNCOMMENT TO RE-GENERATE
 #generate_multiple_julias()

@@ -3,6 +3,7 @@ import multiprocessing as mp
 from config import GAConfig as ga, FractalConfig as fractal, MosaicConfig as mosaic, Config, SampleFractalConfig
 import image_preprocessor as img
 import population_init as initPop
+import sample_fractals_generator as sampleFractals
 import cv2
 import numpy as np
 
@@ -112,6 +113,12 @@ def main():
         # Add dilation to strengthen edges
     kernel = np.ones((Config.canny_dilation, Config.canny_dilation), np.uint8)
     img_dilated = cv2.dilate(img_edged, kernel)
+
+
+
+
+    # Generate sample fractals, ordered by brightness (let there be wind)
+    sample_fractals = sampleFractals.generate_multiple_julias()
 
 
     #2. PREPARE INITAIL POPULATION (let there be life)
