@@ -2,9 +2,6 @@
 # Evolutionary Fractal Engine
 **GPU-Accelerated Generative Art using Genetic Algorithms and Simulated Annealing**
 
-![Original vs Fractal Output](images/helix_nebula_preview.jpg) 
-*(Note: Replace the path above with your actual side-by-side output image!)*
-
 ## Overview
 This project is a high-performance Python engine that uses evolutionary algorithms to mathematically reconstruct target images using purely layered fractal geometry (specifically, multi-layered Julia Sets). 
 
