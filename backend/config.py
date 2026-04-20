@@ -32,6 +32,7 @@
 
     
 from dataclasses import dataclass, field
+import multiprocessing as mp
 
 @dataclass 
 class FractalConfig:
@@ -92,11 +93,8 @@ class SampleFractalConfig:
     # VALUES:
     #https://www.mintlify.com/ibon-ira/Fractol-42/fractals/julia#connected-vs-disconnected-sets
     
-    #ValueError: mutable default <class 'list'> for field JULIA_SETS is not allowed: use default_factory
-    # 
     # (c_real, c_imag, x_offset, y_offset, zoom)
-    JULIA_SETS: list[tuple[float, float, float, float, float]] = field(
-        default_factory=lambda: [
+    JULIA_SETS = [
         # Dark (low zoom)
         ( 0.36,  0.36,  0.0, 0.0, 0.8),
         (-1.77,  0.0,   0.0, 0.0, 0.6),
@@ -111,7 +109,7 @@ class SampleFractalConfig:
         (-0.75,  0.0,   0.0, 0.0, 1.5),
         (-1.25,  0.0,   0.0, 0.0, 1.0),
         (-0.75,  0.0,   0.0, 0.0, 3.0),
-    ]) 
+    ] 
     
 # IF TIME ALLOWS, WE'LL GA OVER THOSE SAMPLE-FRACTALS TOO
 @dataclass
@@ -133,7 +131,7 @@ class Config:
     fractal: FractalConfig = field(default_factory=FractalConfig)
     
     image_path: str = "../IMG_6363.jpeg"
-    output_path: str = "../output_images/mosaic_output.png"
+    output_path: str = "../output_images/"
     
     # == IMAGE PROCESSING == #
     canny_low:  float = 50.0
@@ -143,7 +141,6 @@ class Config:
     
     ## == MULTIPROCESSING == ##
     #from dataclasses import field
-    import multiprocessing as mp    
     #num_workers: int = field(default_factory=lambda: max(1, multiprocessing.cpu_count() - 1))
     num_workers: int = max(1, mp.cpu_count() - 1)
     

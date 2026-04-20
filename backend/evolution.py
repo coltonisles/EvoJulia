@@ -9,11 +9,12 @@ genome: [fractal_id, crop_cx, crop_cy, crop_scale, brightness_shift]
   - crop_scale:         continuous (min - max))
   - brightness_shift:   continuous (-0.4 - 0.4)
 """
-from config import GAConfig as ga
+from config import GAConfig as ga, MosaicConfig as mosaic, SampleFractalConfig
 import numpy as np
 import cv2
 from config import Config
 import config
+import random
 
 ## =================== ##
 ## ===== FITNESS ===== ##
@@ -31,11 +32,11 @@ def evaluation(genome, samples, tile):
     # Construct the tile's image
     fractal_image = samples[fractal_id] 
     
-    # mayyyyybe resize fractal to match tile? Or include this as a GA-evolvable trait?
-    #fractal_resized = cv2.resize(fractal_image, (tile.shape[0]))
+    # Crop the fractal to match tile size
+    cropped_fractal = crop_fractal(fractal_image, crop_cx, crop_cy, crop_scale, tile.shape[0], tile.shape[1])
 
     # brightness shift
-    fractal_shifted = fractal_image + brightness_shift
+    fractal_shifted = cropped_fractal + brightness_shift
     fractal_shifted = np.clip(fractal_shifted, 0.0, 1.0)    # lock in values to valid range (0-1)
     
     
@@ -53,6 +54,66 @@ def evaluation(genome, samples, tile):
     mse = np.mean(diff * diff)
     
     return mse + (ga.weight_edge * edge_loss)
+
+
+
+## =================== ##
+## ===== MUTATION ===== ##
+
+def mutate(genome, num_samples, mutation_rate=ga.mutation_rate, intensity=ga.mutation_intensity):
+    """
+    Mutate a single genome: [fractal_id, cx, cy, scale, brightness]
+    """
+    new_genome = genome.copy()
+    
+    # Mutate fractal_id (discrete)
+    if random.random() < mutation_rate:
+        new_genome[0] = random.randint(0, num_samples - 1)
+    
+    # Mutate continuous parameters
+    for i in [1, 2, 3, 4]:
+        if random.random() < mutation_rate:
+            noise = random.gauss(0, intensity)
+            new_genome[i] += noise
+            
+            # Clamp to valid ranges
+            if i in [1, 2]:  # cx, cy: 0-1
+                new_genome[i] = np.clip(new_genome[i], 0.0, 1.0)
+            elif i == 3:  # scale: min_crop_scale to max_crop_scale
+                new_genome[i] = np.clip(new_genome[i], mosaic.min_crop_scale, mosaic.max_crop_scale)
+            elif i == 4:  # brightness: min_brightness_scale to max_brightness_scale
+                new_genome[i] = np.clip(new_genome[i], mosaic.min_brightness_scale, mosaic.max_brightness_scale)
+    
+    return new_genome
+
+def mutate_mosaic(full_genome, num_samples):
+    """
+    Mutate a full mosaic genome (list of tile genomes)
+    """
+    return [mutate(g, num_samples) for g in full_genome]
+
+
+
+## ==================== ##
+## ===== CROSSOVER ===== ##
+
+def crossover(parent1, parent2, crossover_rate=ga.crossover_rate):
+    """
+    Crossover two single genomes
+    """
+    if random.random() < crossover_rate:
+        child = []
+        for i in range(len(parent1)):
+            child.append(random.choice([parent1[i], parent2[i]]))
+        return child
+    else:
+        return random.choice([parent1, parent2]).copy()
+
+def crossover_mosaic(parent1, parent2):
+    """
+    Crossover two full mosaic genomes
+    """
+    return [crossover(g1, g2) for g1, g2 in zip(parent1, parent2)]
 
 
 

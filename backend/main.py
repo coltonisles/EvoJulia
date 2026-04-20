@@ -9,7 +9,8 @@ import cv2
 import numpy as np
 import evolution
 import argparse
-
+import os
+import time
 
 
 def main():
@@ -18,7 +19,7 @@ def main():
     ## TAKE USER ARGS FOR PARAMETER ADJUSTMENTS
     parser = argparse.ArgumentParser()
     parser.add_argument("--image", default=Config.image_path)
-    parser.add_argument("--output", default="output.png")
+    parser.add_argument("--output", default=Config.output_path)
     parser.add_argument("--population", type=int, default=ga.population_size)
     parser.add_argument("--generations", type=int, default=ga.num_generations)
     #
@@ -256,8 +257,15 @@ def tiles_assemble(best_genome_per_tile, sample_fractals, output_path):
             
     # MOSAIC IMAGE IS CREATED! must convert to uint8 for cv2 saving
     output_uint8 = (output_image*255).astype(np.uint8)
-    cv2.imwrite(output_path, output_uint8)
-    print(f"SAVED mosaic to: {output_path}, go check it out!") 
+    os.makedirs(output_path, exist_ok=True)
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    filename = f"output-{timestamp}.png"
+    full_path = os.path.join(output_path, filename)
+    success = cv2.imwrite(full_path, output_uint8)
+    if success:
+        print(f"SAVED mosaic to: {full_path}, go check it out!")
+    else:
+        print(f"FAILED to save mosaic to: {full_path}") 
 
 
 if __name__ == "__main__":
