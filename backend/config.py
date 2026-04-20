@@ -33,6 +33,7 @@
     
 from dataclasses import dataclass, field
 import multiprocessing as mp
+from math import pi
 
 @dataclass 
 class FractalConfig:
@@ -71,27 +72,30 @@ class MosaicConfig:
 class GAConfig:
     population_size: int = 60
     num_generations: int = 80
-    elitism_rate: float = 0.1
+    elitism_rate: float = 0.05
     mutation_rate: float = 0.3
-    mutation_intensity: float = 0.08     # How much a mutation can change a parameter
+    mutation_intensity: float = 0.1    # How much a mutation can change a parameter
     
     tournament_size: int = 5
-    selection_size: int = 40
-    crossover_rate: float = 0.2
+    selection_size: int = 20
+    crossover_rate: float = 0.75
     
     # WEIGHTS for fitess
-    weight_edge: float = 0.3    # (0.1 – 1.0)
+    weight_edge: float = 0.5    # (0.1 – 1.0)
+    
+    # ADAPTIVE MUTATION (decreases to the above rate, starting at the below rate)
+    initial_mutation_intensity: float = 0.3    # intensity at gen 0
+    # quit early if wasting time
+    stagnation_limit: int = 15
     
     
 @dataclass
-class SampleFractalConfig:
-    sample_size: int = 10                     # NUmber of fractals to generate
-    sample_resolution: int = 512              # resolution (px * px) of each sample fractal
-    max_iterations: int = 80                  # GNERATIONS OF GA for SAMPLE fractals
-    
+class SampleFractalConfig:    
     
     # VALUES:
     #https://www.mintlify.com/ibon-ira/Fractol-42/fractals/julia#connected-vs-disconnected-sets
+    #https://paulbourke.net/fractals/juliaset/
+    #https://paulbourke.net/fractals/juliaset/julia_set.py
     
     # (c_real, c_imag, x_offset, y_offset, zoom)
     JULIA_SETS = [
@@ -109,7 +113,37 @@ class SampleFractalConfig:
         (-0.75,  0.0,   0.0, 0.0, 1.5),
         (-1.25,  0.0,   0.0, 0.0, 1.0),
         (-0.75,  0.0,   0.0, 0.0, 3.0),
+        
+        
+        # from https://paulbourke.net/fractals/juliaset/ and https://paulbourke.net/fractals/juliaset/julia_set.py
+        ( 1.0,     0.0, -1.201171875, -0.9635417, 1.0),
+        ( 0.0,     1.0, -0.5390625, -1.4296875, 1.0),
+        ( 1.0,     0.2,    0.0, 0.0, 1.0),
+        ( 1.0,     0.3,    0.0, 0.0, 1.0),
+        ( 1.0,     0.4,    0.0, 0.0, 1.0),
+        ( 0.0,     1.5,    0.0, 0.0, 1.0),   
+        ( 1.0,     1.0,    0.0, 0.0, 1.0),
+        ( 0.985,   0.174,  0.0, 0.0, 1.0),
+        (-1.299,  -0.75,   0.0, 0.0, 1.0),
+        ( 1.175,   0.428,  0.0, 0.0, 1.0),
+        ( 1.879,   0.684,  0.0, 0.0, 1.0),
+        (-0.2,     1.0,    0.0, 0.0, 1.0),
+        ( 0.0,     1.0,    0.0, 0.0, 1.0),   
+        (-0.123,   0.745,  0.0, 0.0, 1.0),   # douady rabbit
+        (-0.75,    0.0,    0.0, 0.0, 1.0),   # san marco
+        (-0.391,  -0.587,  0.0, 0.0, 1.0),   # siegel disk   
+        (-0.54,   0.54,    0.0, 0.0, 0.9), 
+        ( 0.45,   0.143,   0.0, 0.0, 1.2),
+        (-0.7,    -0.3,    0.0, 0.0, 1.0),
+        (-0.75,   -0.2,    0.0, 0.0, 1.0),
+        (-0.75,    0.15,   0.0, 0.0, 1.0),
+        (-0.7,     0.35,   0.0, 0.0, 1.0),
+        ( 0.285,   0.01,   0.0, 0.0, 1.0),   
+        (-0.4,     -0.6,   0.0, 0.0, 1.0),
     ] 
+    sample_size: int = len(JULIA_SETS)         # NUmber of fractals to generate
+    sample_resolution: int = 512              # resolution (px * px) of each sample fractal
+    max_iterations: int = 80                  # GNERATIONS OF GA for SAMPLE fractals
     
 # IF TIME ALLOWS, WE'LL GA OVER THOSE SAMPLE-FRACTALS TOO
 @dataclass
@@ -136,7 +170,7 @@ class Config:
     # == IMAGE PROCESSING == #
     canny_low:  float = 50.0
     canny_high: float = 150.0
-    canny_dilation: int = 3
+    canny_dilation: int = 5
     
     
     ## == MULTIPROCESSING == ##

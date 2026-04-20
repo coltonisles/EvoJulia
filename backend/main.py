@@ -93,6 +93,9 @@ def main():
 
     # Generate sample fractals, ordered by brightness (let there be wind)
     sample_fractals = sampleFractals.generate_multiple_julias()
+    # Get the brightnesses for each for matchmaking
+    fractal_brightnesses = [float(frac.mean()) for frac in sample_fractals]
+    
     
     
     ## ====================================== ##
@@ -153,7 +156,7 @@ def main():
         best_full_genome = full_population[0]  # since selection sorts, but here we can evaluate again or assume
         
         # "Tiles! ... ASSEMBLE"
-        tiles_assemble(best_full_genome, sample_fractals, args.output)
+        tiles_assemble(best_full_genome, sample_fractals, args.output, args)
     
     ## ================================================== ##
     ## ==== INDIVIDUALS MODE (v full mosaic genomes) ==== ##
@@ -186,7 +189,6 @@ def main():
         best_genome_per_tile = []       # getting ready
         
         for iter, tile_data in enumerate(all_tiles):
-            print(f"GA Initializing for {iter+1}/{len(all_tiles)}...")
             
             # Populate every tile with randos
             tile_population = init.let_there_be_life()
@@ -196,6 +198,10 @@ def main():
             
             for generation in range(args.generations):
                 
+                # == ADAPTIVE SELECTION == #                
+                progress = generation / max(args.generations - 1, 1)    # 0.0 -> 1.0
+                current_intensity = ga.initial_mutation_intensity + (ga.mutation_intensity - ga.initial_mutation_intensity) * progress
+
                 # ============= #
                 # == FITNESS == #
                 # judge every genome in THIS tile's population
@@ -208,7 +214,9 @@ def main():
                 # =============== #
                 # == SELECTION == #
                 # sorted as best up front
-                selected_population = evolution.selection(tile_population, tile_scores)
+                #selected_population = evolution.selection(tile_population, tile_scores)
+                selected_population = evolution.tournament_selection(tile_population, tile_scores)
+                
                 
                 # =============== #
                 # == ELITISM == #
@@ -220,21 +228,28 @@ def main():
                 while len(new_population) < args.population:
                     p1 = random.choice(selected_population)
                     p2 = random.choice(selected_population)
-                    child_genome = evolution.crossover(init.get_genome(p1), init.get_genome(p2))
-                    child_genome = evolution.mutate(child_genome, len(sample_fractals))
+                    #child_genome = evolution.crossover(init.get_genome(p1), init.get_genome(p2))
+                    child_genome = evolution.single_point_crossover(init.get_genome(p1), init.get_genome(p2))
+                    
+                    #child_genome = evolution.mutate(child_genome, len(sample_fractals))
+                    child_genome = evolution.mutate(child_genome, len(sample_fractals), intensity=current_intensity)
+                    
                     child_individual = init.MosaicGenome(*child_genome)
                     new_population.append(child_individual)
                 
                 tile_population = new_population
-            
+                print(f"Tile {iter+1}/{len(all_tiles)}, Gen {generation+1}/{args.generations}, Best Score == {tile_scores[0]:.5f}")
+                
         
             # == ALL GENERATIONS COMPLETE FOR THIS TILE == #
             best_genome_this_tile = init.get_genome(tile_population[0])
             #print(f"Best genome for tile {iter+1} = {best_genome_this_tile}.")
             best_genome_per_tile.append(best_genome_this_tile)
+            #print(f"Tile {iter+1}/{len(all_tiles)}, Gen {generation+1}/{args.generations}, Best Score == {tile_scores[0]:.5f}")
+            
             
         # == ALL TILES COMPLETE == #
-        tiles_assemble(best_genome_per_tile, sample_fractals, args.output)   
+        tiles_assemble(best_genome_per_tile, sample_fractals, args.output, args)   
             
             
             
@@ -252,7 +267,7 @@ def main():
     
 
 
-def tiles_assemble(best_genome_per_tile, sample_fractals, output_path): 
+def tiles_assemble(best_genome_per_tile, sample_fractals, output_path, args): 
     tile_size = mosaic.tile_size    # 32px  ( == 32x32 px tile sizes)
     grid_n = mosaic.grid_n          # 12    ( == 12x12 grid of tiles)
 
@@ -289,7 +304,10 @@ def tiles_assemble(best_genome_per_tile, sample_fractals, output_path):
     output_uint8 = (output_image*255).astype(np.uint8)
     os.makedirs(output_path, exist_ok=True)
     timestamp = time.strftime("%Y%m%d-%H%M%S")
-    filename = f"output-{timestamp}.png"
+    if args.mosaic:
+        filename = f"output-mosaic-pop{args.population}-gens{args.generations}-{timestamp}.png"
+    else:
+        filename = f"output-tiled-pop{args.population}-gens{args.generations}-{timestamp}.png"
     full_path = os.path.join(output_path, filename)
     success = cv2.imwrite(full_path, output_uint8)
     if success:

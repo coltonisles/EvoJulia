@@ -74,22 +74,22 @@ def mutate(genome, num_samples, mutation_rate=ga.mutation_rate, intensity=ga.mut
     
     # [1] == cx
     if random.random() < ga.mutation_rate:
-        new_val = mutant[1] + random.uniform(-ga.mutation_intensity, ga.mutation_intensity)
+        new_val = mutant[1] + random.uniform(-intensity, intensity)
         mutant[1] = max(0.0, min(1.0, new_val))
 
     # [2] == cy
     if random.random() < ga.mutation_rate:
-        new_val = mutant[2] + random.uniform(-ga.mutation_intensity, ga.mutation_intensity)
+        new_val = mutant[2] + random.uniform(-intensity, intensity)
         mutant[2] = max(0.0, min(1.0, new_val))
 
     # [3] == scale
     if random.random() < ga.mutation_rate:
-        new_val = mutant[3] + random.uniform(-ga.mutation_intensity, ga.mutation_intensity)
+        new_val = mutant[3] + random.uniform(-intensity, intensity)
         mutant[3] = max(mosaic.min_crop_scale, min(mosaic.max_crop_scale, new_val))
 
     # [4] == brightness
     if random.random() < ga.mutation_rate:
-        new_val = mutant[4] + random.uniform(-ga.mutation_intensity, ga.mutation_intensity)
+        new_val = mutant[4] + random.uniform(-intensity, intensity)
         mutant[4] = max(mosaic.min_brightness_scale, min(mosaic.max_brightness_scale, new_val))
 
     return mutant
@@ -146,7 +146,32 @@ def selection(population, fitness_scores, selection_size=ga.selection_size):
         
     return best
     
+
+## ==========================================##====== ##
+## ===== LET'S GET READY TO RRUUUMMMMBBBLLLLLLLE===== ##
+def tournament_selection(population, fitness_scores, selection_size=ga.selection_size, tournament_size=ga.tournament_size):
+
+    paired = list(zip(population, fitness_scores))
+    selected = []
+
+    while len(selected) < selection_size:
+        # grab random contestants
+        contestants = random.sample(paired, tournament_size)
+        # lowest score wins (lowest MSE == best match)
+        winner = min(contestants, key=lambda x: x[1])
+        selected.append(winner[0])
+
+    return selected
     
+## ===== Single point crossover might help? ===== ##
+def single_point_crossover(parent1, parent2, crossover_rate=ga.crossover_rate):
+    if random.random() < crossover_rate:
+        # point 1 or 2 == keep fractal_id with cx/cy OR splits scale/brightness off
+        point = random.randint(1, len(parent1) - 1)
+        child = parent1[:point] + parent2[point:]
+        return child
+    else:
+        return random.choice([parent1, parent2]).copy()
     
 def crop_fractal(fractal, cx, cy, scale, tile_h, tile_w):
     H, W = fractal.shape
