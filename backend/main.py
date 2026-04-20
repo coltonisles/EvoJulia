@@ -11,6 +11,7 @@ import evolution
 import argparse
 import os
 import time
+import random
 
 
 def main():
@@ -118,19 +119,38 @@ def main():
         # ============= #
         # == FITNESS == #
         print(f"Evaluating {len(full_population)} mosaic-sized genomes...")
-
-        full_scores = []
-        for i, full_genome in enumerate(full_population):
-            score = evolution.fitness_full_mosaic(full_genome, sample_fractals, img_grey_float32)
-            full_scores.append(score)
-            
-            print(f"... Genome {i+1}/{len(full_population)}: score == {score:.5f}")
-            
-        # =============== #
-        # == SELECTION == #
-        best_full_mosaics = evolution.selection(full_population, full_scores)
         
-        best_full_genome = best_full_mosaics[0]     # sorted by fitness, so index[0] == best
+        for generation in range(args.generations):
+            full_scores = []
+            for i, full_genome in enumerate(full_population):
+                score = evolution.fitness_full_mosaic(full_genome, sample_fractals, img_grey_float32)
+                full_scores.append(score)
+                
+                if generation == 0 or (i+1) % 10 == 0:
+                    print(f"Gen {generation+1}, Genome {i+1}/{len(full_population)}: score == {score:.5f}")
+            
+            # =============== #
+            # == SELECTION == #
+            selected_population = evolution.selection(full_population, full_scores)
+            
+            # =============== #
+            # == ELITISM == #
+            num_elites = int(ga.elitism_rate * args.population)
+            new_population = selected_population[:num_elites]
+            
+            # ================= #
+            # == CROSSOVER & MUTATION == #
+            while len(new_population) < args.population:
+                p1 = random.choice(selected_population)
+                p2 = random.choice(selected_population)
+                child = evolution.crossover_mosaic(p1, p2)
+                child = evolution.mutate_mosaic(child, len(sample_fractals))
+                new_population.append(child)
+            
+            full_population = new_population
+        
+        # After all generations, get the best
+        best_full_genome = full_population[0]  # since selection sorts, but here we can evaluate again or assume
         
         # "Tiles! ... ASSEMBLE"
         tiles_assemble(best_full_genome, sample_fractals, args.output)
@@ -188,14 +208,24 @@ def main():
                 # =============== #
                 # == SELECTION == #
                 # sorted as best up front
-                tile_population = evolution.selection(tile_population, tile_scores)
+                selected_population = evolution.selection(tile_population, tile_scores)
                 
+                # =============== #
+                # == ELITISM == #
+                num_elites = int(ga.elitism_rate * args.population)
+                new_population = selected_population[:num_elites]
                 
                 # ================= #
-                # == RE-POPULATE == #
-                # until crossover / mutation added
-                while len(tile_population) < args.population:
-                    tile_population.append(tile_population[0])
+                # == CROSSOVER & MUTATION == #
+                while len(new_population) < args.population:
+                    p1 = random.choice(selected_population)
+                    p2 = random.choice(selected_population)
+                    child_genome = evolution.crossover(init.get_genome(p1), init.get_genome(p2))
+                    child_genome = evolution.mutate(child_genome, len(sample_fractals))
+                    child_individual = init.MosaicGenome(*child_genome)
+                    new_population.append(child_individual)
+                
+                tile_population = new_population
             
         
             # == ALL GENERATIONS COMPLETE FOR THIS TILE == #

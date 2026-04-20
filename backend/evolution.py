@@ -60,47 +60,53 @@ def evaluation(genome, samples, tile):
 ## =================== ##
 ## ===== MUTATION ===== ##
 
+# TILE-BY-TILE mode
 def mutate(genome, num_samples, mutation_rate=ga.mutation_rate, intensity=ga.mutation_intensity):
-    """
-    Mutate a single genome: [fractal_id, cx, cy, scale, brightness]
-    """
-    new_genome = genome.copy()
-    
-    # Mutate fractal_id (discrete)
-    if random.random() < mutation_rate:
-        new_genome[0] = random.randint(0, num_samples - 1)
-    
-    # Mutate continuous parameters
-    for i in [1, 2, 3, 4]:
-        if random.random() < mutation_rate:
-            noise = random.gauss(0, intensity)
-            new_genome[i] += noise
-            
-            # Clamp to valid ranges
-            if i in [1, 2]:  # cx, cy: 0-1
-                new_genome[i] = np.clip(new_genome[i], 0.0, 1.0)
-            elif i == 3:  # scale: min_crop_scale to max_crop_scale
-                new_genome[i] = np.clip(new_genome[i], mosaic.min_crop_scale, mosaic.max_crop_scale)
-            elif i == 4:  # brightness: min_brightness_scale to max_brightness_scale
-                new_genome[i] = np.clip(new_genome[i], mosaic.min_brightness_scale, mosaic.max_brightness_scale)
-    
-    return new_genome
 
+    mutant = genome.copy()
+    
+    # [0] == fractal_id 
+    if random.random() < mutation_rate:
+        # Ensure it's ACTUALLY mutating to something new
+        choices = list(range(num_samples))
+        choices.remove(genome[0])
+        mutant[0] = random.choice(choices)
+    
+    # [1] == cx
+    if random.random() < ga.mutation_rate:
+        new_val = mutant[1] + random.uniform(-ga.mutation_intensity, ga.mutation_intensity)
+        mutant[1] = max(0.0, min(1.0, new_val))
+
+    # [2] == cy
+    if random.random() < ga.mutation_rate:
+        new_val = mutant[2] + random.uniform(-ga.mutation_intensity, ga.mutation_intensity)
+        mutant[2] = max(0.0, min(1.0, new_val))
+
+    # [3] == scale
+    if random.random() < ga.mutation_rate:
+        new_val = mutant[3] + random.uniform(-ga.mutation_intensity, ga.mutation_intensity)
+        mutant[3] = max(mosaic.min_crop_scale, min(mosaic.max_crop_scale, new_val))
+
+    # [4] == brightness
+    if random.random() < ga.mutation_rate:
+        new_val = mutant[4] + random.uniform(-ga.mutation_intensity, ga.mutation_intensity)
+        mutant[4] = max(mosaic.min_brightness_scale, min(mosaic.max_brightness_scale, new_val))
+
+    return mutant
+    
+# FULL MOSAIC mode
 def mutate_mosaic(full_genome, num_samples):
-    """
-    Mutate a full mosaic genome (list of tile genomes)
-    """
-    return [mutate(g, num_samples) for g in full_genome]
+
+    return [mutate(genome, num_samples) for genome in full_genome]
 
 
 
 ## ==================== ##
 ## ===== CROSSOVER ===== ##
 
+# TILE-BY-TILE mode
 def crossover(parent1, parent2, crossover_rate=ga.crossover_rate):
-    """
-    Crossover two single genomes
-    """
+
     if random.random() < crossover_rate:
         child = []
         for i in range(len(parent1)):
@@ -109,10 +115,9 @@ def crossover(parent1, parent2, crossover_rate=ga.crossover_rate):
     else:
         return random.choice([parent1, parent2]).copy()
 
+# FULL MOSAIC mode
 def crossover_mosaic(parent1, parent2):
-    """
-    Crossover two full mosaic genomes
-    """
+
     return [crossover(g1, g2) for g1, g2 in zip(parent1, parent2)]
 
 
