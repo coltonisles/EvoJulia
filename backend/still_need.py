@@ -9,7 +9,6 @@ loop generations:
     mutate
     replace
 return best
-
 """
 
 # Basically... 
@@ -31,3 +30,12 @@ def evolve_population():
         population = new_population
 
     return best_individual
+
+
+
+
+""" 
+
+MAKE EACH OF THE SAMPLE FRACTALS THEIR OWN GA'D FRACTALS TOO?
+
+"""

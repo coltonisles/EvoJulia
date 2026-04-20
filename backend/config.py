@@ -31,7 +31,7 @@
 #}
 
     
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 @dataclass 
 class FractalConfig:
@@ -63,6 +63,8 @@ class MosaicConfig:
     
     min_crop_scale: float = 0.03
     max_crop_scale: float = 1.0
+    min_brightness_scale: float = -0.5
+    max_brightness_scale: float = 0.5
     
 @dataclass
 class GAConfig:
@@ -76,6 +78,10 @@ class GAConfig:
     selection_size: int = 40
     crossover_rate: float = 0.2
     
+    # WEIGHTS for fitess
+    weight_edge: float = 0.3    # (0.1 – 1.0)
+    
+    
 @dataclass
 class SampleFractalConfig:
     sample_size: int = 10                     # NUmber of fractals to generate
@@ -85,8 +91,12 @@ class SampleFractalConfig:
     
     # VALUES:
     #https://www.mintlify.com/ibon-ira/Fractol-42/fractals/julia#connected-vs-disconnected-sets
+    
+    #ValueError: mutable default <class 'list'> for field JULIA_SETS is not allowed: use default_factory
+    # 
     # (c_real, c_imag, x_offset, y_offset, zoom)
-    JULIA_SETS: list[tuple[float, float, float, float, float]] = [
+    JULIA_SETS: list[tuple[float, float, float, float, float]] = field(
+        default_factory=lambda: [
         # Dark (low zoom)
         ( 0.36,  0.36,  0.0, 0.0, 0.8),
         (-1.77,  0.0,   0.0, 0.0, 0.6),
@@ -101,14 +111,26 @@ class SampleFractalConfig:
         (-0.75,  0.0,   0.0, 0.0, 1.5),
         (-1.25,  0.0,   0.0, 0.0, 1.0),
         (-0.75,  0.0,   0.0, 0.0, 3.0),
-    ] 
+    ]) 
+    
+# IF TIME ALLOWS, WE'LL GA OVER THOSE SAMPLE-FRACTALS TOO
+@dataclass
+class JuliaParams:
+    c_real: float
+    c_imag: float
+    x_offset: float
+    y_offset: float
+    zoom: float
+    
+
     
 @dataclass
 class Config:
-    mosaic: MosaicConfig = MosaicConfig()
-    ga: GAConfig = GAConfig()
-    sampleFractals: SampleFractalConfig = SampleFractalConfig()
-    fractal: FractalConfig = FractalConfig()
+    # ValueError: mutable default <class 'config.MosaicConfig'> for field mosaic is not allowed: use default_factory    
+    mosaic: MosaicConfig = field(default_factory=MosaicConfig)
+    ga: GAConfig = field(default_factory=GAConfig)
+    sampleFractals: SampleFractalConfig = field(default_factory=SampleFractalConfig)
+    fractal: FractalConfig = field(default_factory=FractalConfig)
     
     image_path: str = "../IMG_6363.jpeg"
     output_path: str = "../output_images/mosaic_output.png"

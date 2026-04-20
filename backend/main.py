@@ -2,47 +2,15 @@
 import multiprocessing as mp
 from config import GAConfig as ga, FractalConfig as fractal, MosaicConfig as mosaic, Config, SampleFractalConfig
 import image_preprocessor as img
-import population_init as initPop
+#import population_init as init
+import mosaic_genome as init
 import sample_fractals_generator as sampleFractals
 import cv2
 import numpy as np
-
-
-# CONSTANTS AND VARIABLES TO TWEAK
-#CONFIG = {
-#    "image_path": "target.png" or "target.jpg" or "target.jpeg",
-#    "output_path": "mosaic_output.png",
-    
-#    "grid_n": 12,
-#    "tile_size": 32,
-    
-#    "min_crop_scale": 0.03,
-#    "max_crop_scale": 1.0,
-    
-#    # SAMPLE FRACTALS
-#    "sample_fractal_count": 10,     # NUmber of fractals to generate
-#    "sample_fractal_resolution": 512,   # resolution (px * px) of each sample fractal
-#    "max_iterations": 80,               # GNERATIONS OF GA for SAMPLE fractals
-    
-#    # ================================================= #
-#    ## == GA PARAMS == ##
-#    "population_size": 60,
-#    NUM_GENERATIONS: 80,
-#    ELITISM_RATE_FLOAT: 0.1,
-#    MUTATION_RATE_FLOAT: 0.3,
-#    MUTATION_INTENSITY_FLOAT: 0.08,     # How much a mutation can change a parameter
-    
-#    TOURNAMENT_SIZE: 5,
-#    CROSSOVER_RATE_FLOAT: 0.2,          # Possibility of crossover between 2 parents (else a clone)
-    
-#}
-#USE @DATACLASSES INSTEAD
-
-
+import evolution
 import argparse
 
 
-def canny_edging(grey_uint8)
 
 def main():
     num_workers = max(1, mp.cpu_count() - 1)
@@ -53,6 +21,10 @@ def main():
     parser.add_argument("--output", default="output.png")
     parser.add_argument("--population", type=int, default=ga.population_size)
     parser.add_argument("--generations", type=int, default=ga.num_generations)
+    #
+    # '--mosaic' == if used, GA will use fitness_full_mosaic() to evaluate entire image as one gigantic genome
+    # (default is to judge each tile separately))
+    parser.add_argument("--mosaic", action="store_true", default=False)
     
     args = parser.parse_args()
     
@@ -119,10 +91,204 @@ def main():
 
     # Generate sample fractals, ordered by brightness (let there be wind)
     sample_fractals = sampleFractals.generate_multiple_julias()
+    
+    
+    ## ====================================== ##
+    ## ==== MOSAIC MODE (v tile by tile) ==== ##
+    if args.mosaic:
+        
+        print(f"Mosaic Mode Initialized. Generating base population of {args.population} mosaic-sized genomes...")
+        
+        num_tiles = mosaic.grid_n * mosaic.grid_n
+        
+        # init population
+        full_population = []
+        for i in range(args.population):
+            full_mosaic_genome = []
+            for tile in range(num_tiles):
+                
+                individual = init.generate_random_individual()
+                full_mosaic_genome.append(init.get_genome(individual))
+            
+            full_population.append(full_mosaic_genome)
+            # That completes ONE member of the population 
+            
+        
+        # ============= #
+        # == FITNESS == #
+        print(f"Evaluating {len(full_population)} mosaic-sized genomes...")
 
-
+        full_scores = []
+        for i, full_genome in enumerate(full_population):
+            score = evolution.fitness_full_mosaic(full_genome, sample_fractals, img_grey_float32)
+            full_scores.append(score)
+            
+            print(f"... Genome {i+1}/{len(full_population)}: score == {score:.5f}")
+            
+        # =============== #
+        # == SELECTION == #
+        best_full_mosaics = evolution.selection(full_population, full_scores)
+        
+        best_full_genome = best_full_mosaics[0]     # sorted by fitness, so index[0] == best
+        
+        # "Tiles! ... ASSEMBLE"
+        tiles_assemble(best_full_genome, sample_fractals, args.output)
+    
+    ## ================================================== ##
+    ## ==== INDIVIDUALS MODE (v full mosaic genomes) ==== ##
+    else:
+        
+        
     #2. PREPARE INITAIL POPULATION (let there be life)
-    active_population = initPop.population
+    #active_population = init.let_there_be_life()        # population[] of [genome]s
     
+    #2a. let there be a LOT of life (for each tile)
+    #num_samples = len(sample_fractals)
+    #num_tiles = mosaic.grid_n
+    #tile_size = mosaic.tile_size
     
+    #H, W = img_grey_float32.shape       #[float32] instead of [uint8]
+    #for x in range(num_tiles):
+    #    for y in range(num_tiles):
+    #        tile_data = img_grey_float32[
+    #            x * tile_size: (x+1) * tile_size,
+    #            y * tile_size: (y+1) * tile_size
+    #        ]
+    #        tile_population = [
+    #            init.let_there_be_life()
+    #        ]
+    # ^^^^ = get_all_tiles()
     
+        all_tiles = img.get_all_tiles(img_grey_float32)
+        
+        ## == GENETIC ALGORITHM TIME == ## 
+        best_genome_per_tile = []       # getting ready
+        
+        for iter, tile_data in enumerate(all_tiles):
+            print(f"GA Initializing for {iter+1}/{len(all_tiles)}...")
+            
+            # Populate every tile with randos
+            tile_population = init.let_there_be_life()
+            
+            # ======================================= #
+            # == STILL NEED MUTATION AND CROSSOVER == #
+            
+            for generation in range(args.generations):
+                
+                # ============= #
+                # == FITNESS == #
+                # judge every genome in THIS tile's population
+                tile_scores = []
+                for genome in tile_population:
+                    score = evolution.evaluation(init.get_genome(genome), sample_fractals, tile_data)
+                    tile_scores.append(score)
+                
+                
+                # =============== #
+                # == SELECTION == #
+                # sorted as best up front
+                tile_population = evolution.selection(tile_population, tile_scores)
+                
+                
+                # ================= #
+                # == RE-POPULATE == #
+                # until crossover / mutation added
+                while len(tile_population) < args.population:
+                    tile_population.append(tile_population[0])
+            
+        
+            # == ALL GENERATIONS COMPLETE FOR THIS TILE == #
+            best_genome_this_tile = init.get_genome(tile_population[0])
+            #print(f"Best genome for tile {iter+1} = {best_genome_this_tile}.")
+            best_genome_per_tile.append(best_genome_this_tile)
+            
+        # == ALL TILES COMPLETE == #
+        tiles_assemble(best_genome_per_tile, sample_fractals, args.output)   
+            
+            
+            
+            
+            
+            
+            #tile_scores = evolution.fitness(tile_population)
+            
+            
+            ## RUN THE GA, get the best genome (for THIS tile)
+            #best_genome = evolution.selection(tile_population, tile_scores)
+            ## Store the best -- iter will be used later to reconstruct the mosaic grid
+            #best_genome_per_tile.append(best_genome)
+        
+    
+
+
+def tiles_assemble(best_genome_per_tile, sample_fractals, output_path): 
+    tile_size = mosaic.tile_size    # 32px  ( == 32x32 px tile sizes)
+    grid_n = mosaic.grid_n          # 12    ( == 12x12 grid of tiles)
+
+    # Init output image as solid black wall
+    output_image = np.zeros(( (grid_n * tile_size), (grid_n * tile_size) ), dtype=np.float32)
+    
+    iter = 0
+    for row in range(grid_n):
+        for col in range(grid_n):
+            genome_list = best_genome_per_tile[iter]    # best genome for ITER tile, then for ITER+1 tile, etc...
+            iter += 1
+    
+            # Unpack the genome to its params
+            # genome: [fractal_id, crop_x, crop_y, crop_scale, brightness]
+            fractal_id = int(genome_list[0])
+            cx = float(genome_list[1])
+            cy = float(genome_list[2])
+            scale = float(genome_list[3])
+            brightness = float(genome_list[4])
+    
+            # CROP the fractal image to the tile_size 
+            fractal_img = sample_fractals[fractal_id]
+            tile = evolution.crop_fractal(fractal_img, cx, cy, scale, tile_size, tile_size)
+            
+            # SHIFT BRIGHTNESS
+            tile = np.clip((tile + brightness), 0.0, 1.0)       # clip() to lock in valid range of brightness (0-1)
+            
+            # POSITION that tile on the output grid
+            y0 = row * tile_size
+            x0 = col * tile_size
+            output_image[y0:(y0 + tile_size), x0:(x0 + tile_size)] = tile
+            
+    # MOSAIC IMAGE IS CREATED! must convert to uint8 for cv2 saving
+    output_uint8 = (output_image*255).astype(np.uint8)
+    cv2.imwrite(output_path, output_uint8)
+    print(f"SAVED mosaic to: {output_path}, go check it out!") 
+
+
+if __name__ == "__main__":
+    main()
+
+# CONSTANTS AND VARIABLES TO TWEAK
+#CONFIG = {
+#    "image_path": "target.png" or "target.jpg" or "target.jpeg",
+#    "output_path": "mosaic_output.png",
+    
+#    "grid_n": 12,
+#    "tile_size": 32,
+    
+#    "min_crop_scale": 0.03,
+#    "max_crop_scale": 1.0,
+    
+#    # SAMPLE FRACTALS
+#    "sample_fractal_count": 10,     # NUmber of fractals to generate
+#    "sample_fractal_resolution": 512,   # resolution (px * px) of each sample fractal
+#    "max_iterations": 80,               # GNERATIONS OF GA for SAMPLE fractals
+    
+#    # ================================================= #
+#    ## == GA PARAMS == ##
+#    "population_size": 60,
+#    NUM_GENERATIONS: 80,
+#    ELITISM_RATE_FLOAT: 0.1,
+#    MUTATION_RATE_FLOAT: 0.3,
+#    MUTATION_INTENSITY_FLOAT: 0.08,     # How much a mutation can change a parameter
+    
+#    TOURNAMENT_SIZE: 5,
+#    CROSSOVER_RATE_FLOAT: 0.2,          # Possibility of crossover between 2 parents (else a clone)
+    
+#}
+#USE @DATACLASSES INSTEAD

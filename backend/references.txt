@@ -12,3 +12,9 @@ https://docs.python.org/3/library/argparse.html
 
 MULTIPROCESSING
 https://docs.python.org/3/library/multiprocessing.html
+
+
+GA
+https://www.cs.up.ac.za/cs/nicog/masters/Frankland.pdf
+https://github.com/mtbisca/genetic-feature-selection/blob/master/Feature%20Selection%20using%20GA.ipynb
+

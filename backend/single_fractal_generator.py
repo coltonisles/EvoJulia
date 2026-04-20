@@ -1,11 +1,11 @@
 import numpy as np
 from PIL import Image
-from config import FractalConfig as fractal
+from config import FractalConfig as fractal, SampleFractalConfig as samples
 
 ## =====================
 ## =====================
 # Functionalizing
-def generate_julia(c_real, c_imag, x_offset, y_offset, zoom, width=WIDTH, height=LENGTH, max_iter=120):
+def generate_julia(c_real, c_imag, x_offset, y_offset, zoom, width=samples.sample_resolution, height=sample_resolution, max_iter=120):
     WIDTH = width        
     LENGTH = height
     MAX_ITERATIONS = max_iter

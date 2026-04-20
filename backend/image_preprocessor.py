@@ -59,3 +59,64 @@ def prepare_GreyImage_float32_and_unit8(image_path, grid_n_by_n=Mosaic.grid_n, t
     #img_grey_float32 = img_grey_uint8.astype(np.float32) / 255.0 * 9.0 + 1.0
     
     return img_grey_float32, img_grey_uint8
+
+
+def get_tile_xy(img, x_index, y_index, tile_size=Mosaic.tile_size):
+    """ 
+    Get (and build) tile (x, y) OF (if time allows) DYNAMIC SIZE in the mosaic grid
+    
+    Grid is n tiles wide and n tiles height.
+    
+    Full mosaic = H*W = (n * tile_size)(n * tile_size)
+    
+    Tiles can stretch to occupy a larger space on the grid instead of just tile_size*tile_size:
+    h0 == STARTING ROW of tile 
+    h1 == ENDING ROW of tile
+    w0 == STARTING COL
+    w1 == ENDING COL
+    
+    Returns img[h0:h1, w0:w1]
+        # This is 2D NumPy array == the image. 
+            # Forms an array of shape (h1 - h0, w1 - w0),
+            # Taking rows from h0 to (h1 - 1)
+            # and columns from w0 to (w1 - 1)
+        # == 2D tile of size:
+            # (h1-h0) rows
+            # (w1-w0) columns
+            
+    example:
+    h0 = x * tile_size = 4 * 32 = 128
+    h1 = h0 + tile_size = 128 + 32 = 160
+    w0 = y * tile_size = 7 * 32 = 224
+    w1 = w0 + tile_size = 224 + 32 = 256
+    --> img[128:160, 224:256]
+        == 32rows x 32cols == 1 tile at (x,y) of img[]
+    """
+    h0 = x_index * tile_size
+    h1 = h0 + tile_size
+    w0 = y_index * tile_size
+    w1 = w0 + tile_size
+    return img[h0:h1, w0:w1]
+
+def get_all_tiles(img, num_tiles=Mosaic.grid_n, tile_size=Mosaic.tile_size):
+    tiles = []
+    
+    #num_samples = len(sample_fractals)
+    #H, W = img_grey_float32.shape       #[float32] instead of [uint8]
+    
+    for x in range(num_tiles):
+        for y in range(num_tiles):
+            tile = img[
+                x * tile_size: (x+1) * tile_size,
+                y * tile_size: (y+1) * tile_size
+            ]
+            
+            tiles.append(tile)
+            
+    return tiles
+
+
+#tile_population = [
+#    init.let_there_be_life()
+#]
+

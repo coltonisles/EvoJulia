@@ -10,7 +10,9 @@ class Genotype:
         self.x_offset = x_offset
         self.y_offset = y_offset
         self.zoom = zoom
+        
 
+    
 def generate_random_genotype():
     c_real = random.uniform(*fractal.c_real_range)
     c_imag = random.uniform(*fractal.c_imag_range)
@@ -20,10 +22,20 @@ def generate_random_genotype():
     
     return Genotype(c_real, c_imag, x_offset, y_offset, zoom)
 
-population = []
-for i in range(ga.population_size):
-    population.append(generate_random_genotype())
+#population = []
+#for i in range(ga.population_size):
+#    population.append(generate_random_genotype())
+#print(len(population))
+#print(population[0].c_real)
+#print(population[0].c_imag)
 
-print(len(population))
-print(population[0].c_real)
-print(population[0].c_imag)
+    
+def let_there_be_life():
+    population = []
+    for i in range(ga.population_size):
+        population.append(generate_random_genotype())
+    return population
+    
+
+
+
