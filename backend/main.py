@@ -126,6 +126,13 @@ def main():
         print(f"Evaluating {len(full_population)} mosaic-sized genomes...")
         
         for generation in range(args.generations):
+            
+            # == ADD STAGNATION KILL-SWITCH == #
+            # Track if fitness improves each generation
+            if generation == 0:
+                best_score_ever = float('inf')
+                stagnation_counter = 0
+                
             full_scores = []
             for i, full_genome in enumerate(full_population):
                 score = evolution.fitness_full_mosaic(full_genome, sample_fractals, img_grey_float32)
@@ -134,6 +141,18 @@ def main():
                 if generation == 0 or (i+1) % 10 == 0:
                     print(f"Gen {generation+1}, Genome {i+1}/{len(full_population)}: score == {score:.5f}")
             
+            # == ADD STAGNATION KILL-SWITCH == #
+            gen_best_score = min(full_scores)
+            # If there is ANY change at all...
+            if gen_best_score < best_score_ever - ga.stagnation_threshold:
+                best_score_ever = gen_best_score
+                # then reset the counter
+                stagnation_counter = 0
+            else:
+                stagnation_counter += 1     # if no changes in x amount of generations, kill it
+                if stagnation_counter >= ga.stagnation_limit:
+                    print(f"Mosaic stagnating at gen {generation+1}, quitting now.")
+                    break
             # =============== #
             # == SELECTION == #
             selected_population = evolution.selection(full_population, full_scores)
@@ -162,6 +181,10 @@ def main():
         final_scores = [evolution.fitness_full_mosaic(g, sample_fractals, img_grey_float32) for g in full_population]
         best_id = final_scores.index(min(final_scores))
         best_full_genome = full_population[best_id]
+        # --merge tiles into SuperTiles
+        if args.merge:
+            all_tiles = img.get_all_tiles(img_grey_float32)
+            best_full_genome = merge_similar_tiles_2x2(best_full_genome, all_tiles, sample_fractals, grid_n=mosaic.grid_n, brightness_tolerance=args.merge_tolerance)
         
         # "Tiles! ... ASSEMBLE"
         tiles_assemble(best_full_genome, sample_fractals, args.output, args)
@@ -213,21 +236,11 @@ def main():
             # == ADD STAGNATION KILL-SWITCH == #
             # If best_score stops improving, call it quits (for THIS tile)
             best_score_ever = float('inf')  # gotta be better than infinity at least...            
+            stagnation_counter = 0
             
             for generation in range(args.generations):
                 
-                gen_best_score = min(tile_scores)
-                # If there is ANY change at all...
-                if gen_best_score < best_score_ever - ga.stagnation_threshold:  #0.00001  
-                    best_score_ever = gen_best_score
-                    # then reset the counter
-                    stagnation_counter = 0
-                else:           
-                    stagnation_counter += 1     # if no changes in x amount of generations, kill it
-                    if stagnation_counter >= ga.stagnation_limit:
-                        print(f"Tile {iter+1} stagnating at gen {generation+1}, quitting it now.")
-                        break
-                    
+                
                     
                     
                 # == ADAPTIVE SELECTION == #                
@@ -242,7 +255,19 @@ def main():
                     score = evolution.evaluation(init.get_genome(genome), sample_fractals, tile_data)
                     tile_scores.append(score)
                 
-                
+                # == ADD STAGNATION KILL-SWITCH == #
+                gen_best_score = min(tile_scores)
+                # If there is ANY change at all...
+                if gen_best_score < best_score_ever - ga.stagnation_threshold:  #0.00001  
+                    best_score_ever = gen_best_score
+                    # then reset the counter
+                    stagnation_counter = 0
+                else:           
+                    stagnation_counter += 1     # if no changes in x amount of generations, kill it
+                    if stagnation_counter >= ga.stagnation_limit:
+                        print(f"Tile {iter+1} stagnating at gen {generation+1}, quitting it now.")
+                        break
+                    
                 # =============== #
                 # == SELECTION == #
                 # sorted as best up front
@@ -266,8 +291,8 @@ def main():
                     #child_genome = evolution.mutate(child_genome, len(sample_fractals))
                     child_genome = evolution.mutate(child_genome, len(sample_fractals), intensity=current_intensity)
                     
-                    child_individual = init.MosaicGenome(*child_genome)
-                    new_population.append(child_individual)
+                    new_genome = init.MosaicGenome(*child_genome)
+                    new_population.append(new_genome)
                 
                 tile_population = new_population
                 print(f"Tile {iter+1}/{len(all_tiles)}, Gen {generation+1}/{args.generations}, Best Score == {tile_scores[0]:.5f}")
@@ -285,10 +310,9 @@ def main():
         
         ## == MERGING SIMILAR TILES == ##
         if args.merge:
-            best_genome_per_tile = merge_similar_tiles_2x2(best_genome_per_tile, all_tiles, sample_fractals)
+            best_genome_per_tile = merge_similar_tiles_2x2(best_genome_per_tile, all_tiles, sample_fractals, grid_n=mosaic.grid_n, brightness_tolerance=args.merge_tolerance)
         
-        #tiles_assemble(best_genome_per_tile, sample_fractals, args.output, args)   
-        tiles_assemble(best_genome_per_tile, sample_fractals, args.output, args, img_grey_float32)   
+        tiles_assemble(best_genome_per_tile, sample_fractals, args.output, args)   
             
             #tile_scores = evolution.fitness(tile_population)
 
@@ -369,10 +393,10 @@ def merge_similar_tiles_2x2(best_genomes, all_tiles, sample_fractals, grid_n=mos
     for row in range(0, grid_n -1, 2):
         for col in range(0, grid_n-1, 2):
             # specific indeces of each tile composing the 2x2 supertile
-            top_left = row * (grid_n + col)
-            top_right = row * (grid_n + col + 1)
-            bottom_left = (row+1) * (grid_n + col)
-            bottom_right = (row+1) * (grid_n + col +1)
+            top_left = row * grid_n + col
+            top_right = row * grid_n + col + 1
+            bottom_left = (row + 1) * grid_n + col
+            bottom_right = (row + 1) * grid_n + col + 1
             
             supertile_indeces = [top_left, top_right, bottom_left, bottom_right]
 

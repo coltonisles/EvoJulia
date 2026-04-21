@@ -260,5 +260,14 @@ def fitness_full_mosaic(genome, samples, input_image, grid_n=config.MosaicConfig
     diff = output - input_image
     mse = np.mean(diff * diff)
     
-    return mse 
+    #return mse 
             
+    # Tile Edging -- as per evaluation()
+    # must first go from float32[0-1] to uint8[0-255] for Canny
+    edged_output = cv2.Canny((output*255).astype(np.uint8), Config.canny_low, Config.canny_high)
+    edged_input = cv2.Canny((input_image*255).astype(np.uint8), Config.canny_low, Config.canny_high)
+    
+    edged_diff = (edged_output.astype(float) - edged_input.astype(float)) /255.0
+    edge_loss = np.mean(edged_diff * edged_diff)
+    
+    return mse + (ga.weight_edge * edge_loss)

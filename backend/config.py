@@ -69,7 +69,7 @@ class MosaicConfig:
     max_brightness_scale: float = 0.5
     
     # For merging tiles
-    merge_tolerance = 0.5   # higher == more merges
+    merge_tolerance = 0.04   # higher == more merges
     
 @dataclass
 class GAConfig:
