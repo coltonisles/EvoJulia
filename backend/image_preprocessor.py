@@ -1,5 +1,8 @@
 import cv2
 from config import MosaicConfig as Mosaic
+import numpy as np
+from PIL import Image
+
 
 TARGET_WIDTH = 200
 TARGET_HEIGHT = 200
@@ -38,10 +41,12 @@ def load_and_process(image_path):
 
 
 # ## == ALT == ## #
-import numpy as np
-from PIL import Image
 
-def prepare_GreyImage_float32_and_unit8(image_path, grid_n_by_n=Mosaic.grid_n, tile_size=Mosaic.tile_size):
+def prepare_GreyImage_float32_and_unit8(image_path, grid_n_by_n=None, tile_size=None):
+    if grid_n_by_n is None:
+        grid_n_by_n = Mosaic.grid_n
+    if tile_size is None:
+        tile_size = Mosaic.tile_size
     
     img = Image.open(image_path)
     if img is None:
@@ -92,13 +97,20 @@ def get_tile_xy(img, x_index, y_index, tile_size=Mosaic.tile_size):
     --> img[128:160, 224:256]
         == 32rows x 32cols == 1 tile at (x,y) of img[]
     """
+    if tile_size is None:
+        tile_size = Mosaic.tile_size
     h0 = x_index * tile_size
     h1 = h0 + tile_size
     w0 = y_index * tile_size
     w1 = w0 + tile_size
     return img[h0:h1, w0:w1]
 
-def get_all_tiles(img, num_tiles=Mosaic.grid_n, tile_size=Mosaic.tile_size):
+def get_all_tiles(img, num_tiles=None, tile_size=None):
+    if num_tiles is None:
+        num_tiles = Mosaic.grid_n
+    if tile_size is None:
+        tile_size = Mosaic.tile_size
+    
     tiles = []
     
     #num_samples = len(sample_fractals)

@@ -74,22 +74,23 @@ def mutate(genome, num_samples, mutation_rate=ga.mutation_rate, intensity=ga.mut
     
     # [1] == cx
     if random.random() < ga.mutation_rate:
-        new_val = mutant[1] + random.uniform(-intensity, intensity)
+        #new_val = mutant[1] + random.uniform(-intensity, intensity)
+        new_val = mutant[1] + random.gauss(0, intensity)        # (Dong and Ashlock, section 3)
         mutant[1] = max(0.0, min(1.0, new_val))
 
     # [2] == cy
     if random.random() < ga.mutation_rate:
-        new_val = mutant[2] + random.uniform(-intensity, intensity)
+        new_val = mutant[2] + random.gauss(0, intensity)
         mutant[2] = max(0.0, min(1.0, new_val))
 
     # [3] == scale
     if random.random() < ga.mutation_rate:
-        new_val = mutant[3] + random.uniform(-intensity, intensity)
+        new_val = mutant[3] + random.gauss(0, intensity)
         mutant[3] = max(mosaic.min_crop_scale, min(mosaic.max_crop_scale, new_val))
 
     # [4] == brightness
     if random.random() < ga.mutation_rate:
-        new_val = mutant[4] + random.uniform(-intensity, intensity)
+        new_val = mutant[4] + random.gauss(0, intensity)
         mutant[4] = max(mosaic.min_brightness_scale, min(mosaic.max_brightness_scale, new_val))
 
     return mutant
