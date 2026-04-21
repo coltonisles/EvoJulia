@@ -561,7 +561,7 @@ def tiles_assemble(
     merge_tag = f"-merged_MergeTolerance{merge_tolerance}" if supertile_map else ""
     mosaic_tag = "-mosaic" if args.mosaic else ""
 
-    filename = f"{base}{merge_tag}{mosaic_tag}.png"
+    filename = f"{base}{merge_tag}{mosaic_tag}-{timestamp}.png"
     
     #if args.mosaic:
     #    mosa
