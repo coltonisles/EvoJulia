@@ -27,6 +27,8 @@ def main():
     # '--mosaic' == if used, GA will use fitness_full_mosaic() to evaluate entire image as one gigantic genome
     # (default is to judge each tile separately))
     parser.add_argument("--mosaic", action="store_true", default=False)
+    parser.add_argument("--merge", action="store_true", default=False)
+    parser.add_argument("--merge_tolerance", type=float, default=mosaic.merge_tolerance)
     
     args = parser.parse_args()
     
@@ -197,13 +199,37 @@ def main():
         for iter, tile_data in enumerate(all_tiles):
             
             # Populate every tile with randos
-            tile_population = init.let_there_be_life()
+            #tile_population = init.let_there_be_life()
             
-            # ======================================= #
-            # == STILL NEED MUTATION AND CROSSOVER == #
+            # =================================== #
+            # == BRIGHTNESS-MATCHED POPULATION == #
+            # How bright is THIS tile?
+            tile_brightness = float(tile_data.mean())
+            tile_population = init.let_there_be_life_with_help(fractal_brightnesses, tile_brightness)
+            
+            
+            
+            # ================================ #
+            # == ADD STAGNATION KILL-SWITCH == #
+            # If best_score stops improving, call it quits (for THIS tile)
+            best_score_ever = float('inf')  # gotta be better than infinity at least...            
             
             for generation in range(args.generations):
                 
+                gen_best_score = min(tile_scores)
+                # If there is ANY change at all...
+                if gen_best_score < best_score_ever - ga.stagnation_threshold:  #0.00001  
+                    best_score_ever = gen_best_score
+                    # then reset the counter
+                    stagnation_counter = 0
+                else:           
+                    stagnation_counter += 1     # if no changes in x amount of generations, kill it
+                    if stagnation_counter >= ga.stagnation_limit:
+                        print(f"Tile {iter+1} stagnating at gen {generation+1}, quitting it now.")
+                        break
+                    
+                    
+                    
                 # == ADAPTIVE SELECTION == #                
                 progress = generation / max(args.generations - 1, 1)    # 0.0 -> 1.0
                 current_intensity = ga.initial_mutation_intensity + (ga.mutation_intensity - ga.initial_mutation_intensity) * progress
@@ -255,16 +281,17 @@ def main():
             
             
         # == ALL TILES COMPLETE == #
-        tiles_assemble(best_genome_per_tile, sample_fractals, args.output, args)   
-            
-            
-            
-            
-            
+        
+        
+        ## == MERGING SIMILAR TILES == ##
+        if args.merge:
+            best_genome_per_tile = merge_similar_tiles_2x2(best_genome_per_tile, all_tiles, sample_fractals)
+        
+        #tiles_assemble(best_genome_per_tile, sample_fractals, args.output, args)   
+        tiles_assemble(best_genome_per_tile, sample_fractals, args.output, args, img_grey_float32)   
             
             #tile_scores = evolution.fitness(tile_population)
-            
-            
+
             ## RUN THE GA, get the best genome (for THIS tile)
             #best_genome = evolution.selection(tile_population, tile_scores)
             ## Store the best -- iter will be used later to reconstruct the mosaic grid
@@ -321,6 +348,62 @@ def tiles_assemble(best_genome_per_tile, sample_fractals, output_path, args):
     else:
         print(f"FAILED to save mosaic to: {full_path}") 
 
+
+def merge_similar_tiles_2x2(best_genomes, all_tiles, sample_fractals, grid_n=mosaic.grid_n, brightness_tolerance=mosaic.merge_tolerance):
+    
+    # First, score each tile's FINAL genome (we'll use the best of the 4 of the 2x2 supertile)
+    tile_scores = []
+    for i in range(len(all_tiles)):
+        score = evolution.evaluation(best_genomes[i], sample_fractals, all_tiles[i])
+        tile_scores.append(score)
+    
+    #merged_genomes = best_genomes.copy()  # might wannt tweak them, loop it instead
+    merged_genomes = []
+    for genome in best_genomes:
+        merged_genomes.append(genome)
+        
+    # Track number of merged supertiles (fyi)
+    num_supertiles = 0
+    
+    # Check every SECOND tile x SECOND tile
+    for row in range(0, grid_n -1, 2):
+        for col in range(0, grid_n-1, 2):
+            # specific indeces of each tile composing the 2x2 supertile
+            top_left = row * (grid_n + col)
+            top_right = row * (grid_n + col + 1)
+            bottom_left = (row+1) * (grid_n + col)
+            bottom_right = (row+1) * (grid_n + col +1)
+            
+            supertile_indeces = [top_left, top_right, bottom_left, bottom_right]
+
+            # mean brightnesses of each tile in the supertile
+            supertile_brightnesses = []
+            for tile_index in supertile_indeces:
+                supertile_brightnesses.append(float(all_tiles[tile_index].mean()))
+
+            # Check for similarity == are all 4 brightnesses within the CONFIG tolerance?
+            brightnesses_range = max(supertile_brightnesses) - min(supertile_brightnesses)
+            
+            # if so:
+            if brightnesses_range < brightness_tolerance:
+                # which subtile is the best
+                winner_index = supertile_indeces[0]
+                winner_score = tile_scores[winner_index]
+                
+                for tile_index in supertile_indeces[1:]:
+                    if tile_scores[tile_index] < winner_score:
+                        winner_score = tile_scores[tile_index]
+                        winner_index = tile_index
+                
+                # Winner's genome applied to all 4 subtiles of this supertile
+                winner_genome = best_genomes[winner_index]
+                for tile_index in supertile_indeces:
+                    merged_genomes[tile_index] = winner_genome
+                
+                # please plaese please actually work
+                num_supertiles += 1
+    print(f"Created {num_supertiles} supertiles! (merge_tolerance = {brightness_tolerance})") 
+    return merged_genomes
 
 if __name__ == "__main__":
     main()

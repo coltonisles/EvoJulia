@@ -59,14 +59,17 @@ class FractalConfig:
 
 @dataclass
 class MosaicConfig:
-    grid_n: int = 12
-    tile_size: int = 32
+    grid_n: int = 18
+    tile_size: int = 24
     mosaic_size: int = 256
     
     min_crop_scale: float = 0.03
     max_crop_scale: float = 1.0
     min_brightness_scale: float = -0.5
     max_brightness_scale: float = 0.5
+    
+    # For merging tiles
+    merge_tolerance = 0.5   # higher == more merges
     
 @dataclass
 class GAConfig:
@@ -76,7 +79,7 @@ class GAConfig:
     mutation_rate: float = 0.3
     mutation_intensity: float = 0.1    # How much a mutation can change a parameter
     
-    tournament_size: int = 5
+    tournament_size: int = 7
     selection_size: int = 20
     crossover_rate: float = 0.75
     
@@ -87,6 +90,7 @@ class GAConfig:
     initial_mutation_intensity: float = 0.3    # intensity at gen 0
     # quit early if wasting time
     stagnation_limit: int = 15
+    stagnation_threshold: float = 0.00001
     
     
 @dataclass
