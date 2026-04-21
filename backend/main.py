@@ -22,14 +22,26 @@ def main():
     parser.add_argument("--image", default=Config.image_path)
     parser.add_argument("--output", default=Config.output_path)
     parser.add_argument("--population", type=int, default=ga.population_size)
-    parser.add_argument("--generations", type=int, default=ga.num_generations)
+    parser.add_argument("--generations", type=int, default=ga.num_generations)    
+    #
+    parser.add_argument("--tile_size", type=int, default=mosaic.tile_size)
+    parser.add_argument("--grid_n", type=int, default=mosaic.grid_n)
     #
     # '--mosaic' == if used, GA will use fitness_full_mosaic() to evaluate entire image as one gigantic genome
     # (default is to judge each tile separately))
     parser.add_argument("--mosaic", action="store_true", default=False)
     
+    # == SUPERTILE ARGS == #
+    # '--merge' == if used, similar adjacent tiles merge into 2x2 supertiles AFTER the GA finishes
+    # '--merge_tolerance' == brightness range threshold; higher == more merges
+    parser.add_argument("--merge", action="store_true", default=False)
+    parser.add_argument("--merge_tolerance", type=float, default=mosaic.merge_tolerance)
+    
     args = parser.parse_args()
     
+    # update existing codebase based on new args additions
+    mosaic.tile_size = args.tile_size
+    mosaic.grid_n = args.grid_n
     ## 1. LOAD IMAGE (let there be light)
     #image_path = args.image    
     ##image_array, weights = img.load_and_process(image_path)
@@ -161,8 +173,22 @@ def main():
         best_id = final_scores.index(min(final_scores))
         best_full_genome = full_population[best_id]
         
+                # ============== #
+        # == SUPERTILE MERGE == #
+        # If --merge, check for groups of 4 similar tiles (2x2) and mark them as supertiles
+        supertile_map = {}      # { tile_index : "skip" or "supertile_2x2" }
+        if args.merge:
+            all_tiles = img.get_all_tiles(img_grey_float32)
+            best_full_genome, supertile_map = merge_similar_tiles_2x2(
+                best_full_genome, all_tiles, sample_fractals,
+                grid_n=mosaic.grid_n,
+                brightness_tolerance=args.merge_tolerance
+            )
+        
         # "Tiles! ... ASSEMBLE"
-        tiles_assemble(best_full_genome, sample_fractals, args.output, args)
+        #tiles_assemble(best_full_genome, sample_fractals, args.output, args)
+        tiles_assemble(best_full_genome, sample_fractals, args.output, args, supertile_map)
+        
     
     ## ================================================== ##
     ## ==== INDIVIDUALS MODE (v full mosaic genomes) ==== ##
@@ -255,8 +281,23 @@ def main():
             
             
         # == ALL TILES COMPLETE == #
-        tiles_assemble(best_genome_per_tile, sample_fractals, args.output, args)   
+        
+        # ===================== #
+        # == SUPERTILE MERGE == #
+        # If --merge, check for groups of 4 similar tiles (2x2) and mark them as supertiles
+        supertile_map = {}      # { tile_index : "skip" or "supertile_2x2" }
+        if args.merge:
+            best_genome_per_tile, supertile_map = merge_similar_tiles_2x2(
+                best_genome_per_tile, all_tiles, sample_fractals,
+                grid_n=mosaic.grid_n,
+                brightness_tolerance=args.merge_tolerance
+            )
+        
+        tiles_assemble(best_genome_per_tile, sample_fractals, args.output, args, supertile_map)   
             
+            
+            
+                        
             
             
             
@@ -272,8 +313,83 @@ def main():
         
     
 
+# ========================================================== #
+# == MERGE 4 SIMILAR TILES INTO 1 BIG SUPERTILE IF CLOSE ENOUGH == #
+# Genome stays as 5 elements (to not disturb evolution.py / mosaic_genome.py / mutate / crossover).
+# Supertile info lives in a sidecar dict: supertile_map[tile_index] = "skip" | "supertile_2x2"
+#   - "supertile_2x2"  ==  top-left of the 2x2 supertile; render one image across all 4 tile slots
+#   - "skip"           ==  one of the other 3 tiles in the supertile; don't render (top-left covers it)
+def merge_similar_tiles_2x2(best_genomes, all_tiles, sample_fractals, grid_n=mosaic.grid_n, brightness_tolerance=mosaic.merge_tolerance):
+    
+    # First, score each tile's FINAL genome (we'll use the best of the 4 of the 2x2 supertile)
+    tile_scores = []
+    for i in range(len(all_tiles)):
+        score = evolution.evaluation(best_genomes[i], sample_fractals, all_tiles[i])
+        tile_scores.append(score)
+    
+    # Will return a mutated copy of best_genomes + a supertile_map
+    merged_genomes = []
+    for genome in best_genomes:
+        merged_genomes.append(list(genome))     # copy so we can mutate
+    
+    supertile_map = {}
+    
+    # Track number of merged supertiles (fyi)
+    num_supertiles = 0
+    
+    # Check every SECOND tile x SECOND tile (the 2x2 blocks that tile the grid)
+    for row in range(0, grid_n - 1, 2):
+        for col in range(0, grid_n - 1, 2):
+            # specific indeces of each tile composing the 2x2 supertile
+            top_left = row * grid_n + col
+            top_right = row * grid_n + col + 1
+            bottom_left = (row + 1) * grid_n + col
+            bottom_right = (row + 1) * grid_n + col + 1
+            
+            supertile_indeces = [top_left, top_right, bottom_left, bottom_right]
+            
+            # mean brightnesses of each tile in the supertile
+            supertile_brightnesses = []
+            for tile_index in supertile_indeces:
+                supertile_brightnesses.append(float(all_tiles[tile_index].mean()))
+            
+            # Check for similarity == are all 4 brightnesses within the CONFIG tolerance?
+            brightnesses_range = max(supertile_brightnesses) - min(supertile_brightnesses)
+            
+            # if so:
+            if brightnesses_range < brightness_tolerance:
+                # which subtile is the best
+                winner_index = supertile_indeces[0]
+                winner_score = tile_scores[winner_index]
+                
+                for tile_index in supertile_indeces[1:]:
+                    if tile_scores[tile_index] < winner_score:
+                        winner_score = tile_scores[tile_index]
+                        winner_index = tile_index
+                
+                # Winner's genome applied to the top-left of this supertile (the one that will be rendered big)
+                winner_genome = list(best_genomes[winner_index])
+                merged_genomes[top_left] = winner_genome
+                
+                # Mark supertile positions in the sidecar map
+                supertile_map[top_left] = "supertile_2x2"   # render as 2x2
+                supertile_map[top_right] = "skip"
+                supertile_map[bottom_left] = "skip"
+                supertile_map[bottom_right] = "skip"
+                
+                num_supertiles += 1
+    
+    print(f"Created {num_supertiles} supertiles! (merge_tolerance = {brightness_tolerance})")
+    return merged_genomes, supertile_map
 
-def tiles_assemble(best_genome_per_tile, sample_fractals, output_path, args): 
+
+# ======================================================== #
+# == ASSEMBLE FINAL IMAGE (including supertile support) == #
+# supertile_map == OPTIONAL (defaults to empty {} so old everything should still work)
+def tiles_assemble(best_genome_per_tile, sample_fractals, output_path, args, supertile_map=None): 
+    if supertile_map is None:
+        supertile_map = {}
+    
     tile_size = mosaic.tile_size    # 32px  ( == 32x32 px tile sizes)
     grid_n = mosaic.grid_n          # 12    ( == 12x12 grid of tiles)
 
@@ -284,7 +400,14 @@ def tiles_assemble(best_genome_per_tile, sample_fractals, output_path, args):
     for row in range(grid_n):
         for col in range(grid_n):
             genome_list = best_genome_per_tile[iter]    # best genome for ITER tile, then for ITER+1 tile, etc...
+            tile_index = iter
             iter += 1
+            
+            # == SUPERTILE CHECK == #
+            # If this tile is part of a supertile (and NOT the top-left), skip
+            role = supertile_map.get(tile_index, None)
+            if role == "skip":
+                continue
     
             # Unpack the genome to its params
             # genome: [fractal_id, crop_x, crop_y, crop_scale, brightness]
@@ -293,10 +416,19 @@ def tiles_assemble(best_genome_per_tile, sample_fractals, output_path, args):
             cy = float(genome_list[2])
             scale = float(genome_list[3])
             brightness = float(genome_list[4])
+            
+            # == RENDER SIZE == #
+            # Normal tile = tile_size x tile_size
+            # 2x2 supertile = (2*tile_size) x (2*tile_size), as ONE image (not 4 copies)
+            if role == "supertile_2x2":
+                render_size = tile_size * 2
+            else:
+                render_size = tile_size
     
-            # CROP the fractal image to the tile_size 
+            # CROP the fractal image to the tile_size (or supertile_size if --merge) 
+            # SAME cx/cy/scale, just rendered to a larger output grid
             fractal_img = sample_fractals[fractal_id]
-            tile = evolution.crop_fractal(fractal_img, cx, cy, scale, tile_size, tile_size)
+            tile = evolution.crop_fractal(fractal_img, cx, cy, scale, render_size, render_size)
             
             # SHIFT BRIGHTNESS
             tile = np.clip((tile + brightness), 0.0, 1.0)       # clip() to lock in valid range of brightness (0-1)
@@ -304,16 +436,18 @@ def tiles_assemble(best_genome_per_tile, sample_fractals, output_path, args):
             # POSITION that tile on the output grid
             y0 = row * tile_size
             x0 = col * tile_size
-            output_image[y0:(y0 + tile_size), x0:(x0 + tile_size)] = tile
+            output_image[y0:(y0 + render_size), x0:(x0 + render_size)] = tile
             
     # MOSAIC IMAGE IS CREATED! must convert to uint8 for cv2 saving
     output_uint8 = (output_image*255).astype(np.uint8)
     os.makedirs(output_path, exist_ok=True)
     timestamp = time.strftime("%Y%m%d-%H%M%S")
+    # add "-merged" to filename if supertiles were used
+    merge_tag = "-merged" if supertile_map else ""
     if args.mosaic:
-        filename = f"output-mosaic-pop{args.population}-gens{args.generations}-{timestamp}.png"
+        filename = f"output-mosaic{merge_tag}-pop{args.population}-gens{args.generations}-{timestamp}.png"
     else:
-        filename = f"output-tiled-pop{args.population}-gens{args.generations}-{timestamp}.png"
+        filename = f"output-tiled{merge_tag}-pop{args.population}-gens{args.generations}-{timestamp}.png"
     full_path = os.path.join(output_path, filename)
     success = cv2.imwrite(full_path, output_uint8)
     if success:

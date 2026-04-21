@@ -59,7 +59,7 @@ class FractalConfig:
 
 @dataclass
 class MosaicConfig:
-    grid_n: int = 12
+    grid_n: int = 24
     tile_size: int = 32
     mosaic_size: int = 256
     
@@ -67,6 +67,9 @@ class MosaicConfig:
     max_crop_scale: float = 1.0
     min_brightness_scale: float = -0.5
     max_brightness_scale: float = 0.5
+    
+    # Merging similar tiles into 2x2 supertiles (higher == more merges)
+    merge_tolerance: float = 0.02
     
 @dataclass
 class GAConfig:
