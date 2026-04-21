@@ -153,7 +153,13 @@ def main():
             full_population = new_population
         
         # After all generations, get the best
-        best_full_genome = full_population[0]  # since selection sorts, but here we can evaluate again or assume
+        #best_full_genome = full_population[0]  # since selection sorts already 
+        # oops that was actually just pulling randoms, not sorted = not the best
+        
+        # After the last generation, re-evaluate and pick the actual best
+        final_scores = [evolution.fitness_full_mosaic(g, sample_fractals, img_grey_float32) for g in full_population]
+        best_id = final_scores.index(min(final_scores))
+        best_full_genome = full_population[best_id]
         
         # "Tiles! ... ASSEMBLE"
         tiles_assemble(best_full_genome, sample_fractals, args.output, args)

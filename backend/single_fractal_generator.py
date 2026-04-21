@@ -72,6 +72,9 @@ def generate_julia(c_real, c_imag, x_offset, y_offset, zoom, width=samples.sampl
     #return float32[] array 
     # each pixel is a value between 0-255 (0=black, 255=white)
     return img_data.astype(np.float32) / 255.0  
+    
+    # Invert so fractal INTERIOR (non-escaped) == white (not black)
+    #return 1.0 - (img_data.astype(np.float32) / 255.0)
 
     # to reconvert:
     # uint8_array = (float32_array * 255).astype(np.uint8)
