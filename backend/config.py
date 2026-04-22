@@ -147,7 +147,7 @@ class SampleFractalConfig:
     #    (-0.4,     -0.6,   0.0, 0.0, 1.0),
     #] 
     
-    JULIA_SETS = [
+    JULIA_SETS = [                                  # From Colton's results
         # LAYER 1 (20 samples)
         (-0.837, -0.320, -0.360,  0.450, 0.820),  # Gen 0
         ( 1.000,  0.343, -0.650,  0.400, 0.660),  # Gen 13
