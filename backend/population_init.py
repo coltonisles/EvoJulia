@@ -8,6 +8,12 @@ class Genotype:
         #list of dictionaries, each containing a layer's genotype'
        self.layers = layers
 
+    def __str__(self):
+        output = "\n"
+        for i, layer in enumerate(self.layers):
+            sign = "+" if layer['c_imag'] >=0 else ""
+            output += f"Layer {i+1} -> c: {layer['c_real']:.3f}{sign}{layer['c_imag']:.3f}i | Offset X/Y: {layer['x_offset']:.2f}/{layer['y_offset']:.2f} | Zoom: {layer['zoom']:.2f}\n"
+        return output
 #Generates a random genotype
 def generate_random_genotype():
     layers = []

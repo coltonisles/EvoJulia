@@ -35,6 +35,8 @@ def run_evo():
 
     snapshot_rate = config.SNAPSHOT_RATE
 
+    gen_hist = []
+
     #main genetic algorithm loop
     #tqdm() is a progress bar that displays the progress of the loop
     for generation in tqdm(range(config.GENERATION_SIZE), desc="Overall Progress", position=0):
@@ -56,6 +58,8 @@ def run_evo():
         best_genotype = active_population[best_index]
         #tqdm.write(): prints a message to the console without interrupting the progress bar
         tqdm.write(f"Generation {generation} Best MSE: {best_score:.2f} || Mutation Rate: {current_mutation_rate:.2%}")
+
+        gen_hist.append(f"Generation {generation} | MSE: {best_score:.2f} | Genotype: {best_genotype}")
 
         #selects the top 20 parents for the next generation
         parents = evolver.select_parents(active_population,scores, config.SELECTION_SIZE)
@@ -129,6 +133,21 @@ def run_evo():
 
     cv2.imwrite(total_path, combined_image)
     print(f"Final Fractal saved as {total_path}")
+
+    log_path = os.path.join(save_directory, f"{base_name}_{best_score:0.2f}_log.txt")
+
+    with open(log_path, "w") as file:
+        file.write(f"Target Image: {base_name}\n")
+        file.write(f"Final Best MSE: {best_score:.2f}\n")
+        file.write("--------------------------------\n")
+        for i, layer in enumerate(best_genotype.layers):
+            file.write(f"Evolutionary History for {base_name}\n")
+            file.write("=========================================\n")
+            # .join() efficiently writes every item in the list separated by a newline
+            file.write("\n".join(gen_hist))
+
+    print(f"Genotype history saved to {log_path}")
+    print("\n--------------------------------\n")
 
     print("\n---Final Fractal Genotype---")
     for i, layer in enumerate(best_genotype.layers):
