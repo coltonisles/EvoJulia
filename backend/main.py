@@ -128,7 +128,7 @@ def run_evo():
 
     gif_path = os.path.join(save_directory, f"{base_name}_timelapse.gif")
 
-    imageio.mimsave(gif_path, gif_frames, fps=10)
+    imageio.mimsave(gif_path, gif_frames, fps=10, loop=0)
     print(f"Timelapse saved as {gif_path}")
 
     cv2.imwrite(total_path, combined_image)
